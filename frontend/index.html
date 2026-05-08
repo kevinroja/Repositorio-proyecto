@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kika — Acceso</title>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/kika.css">
+  <style>
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .role-btn {
+      padding: 12px 10px;
+      border: 1.5px solid var(--gray-mid);
+      border-radius: 10px;
+      background: var(--gray-lt);
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-sec);
+      text-align: center;
+      transition: var(--tr);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    .role-btn i          { font-size: 22px; }
+    .role-btn .role-name { font-size: 13px; font-weight: 700; color: var(--text); }
+    .role-btn .role-desc { font-size: 10px; opacity: .6; }
+    .role-btn:hover      { border-color: var(--teal); color: var(--teal); background: var(--teal-bg); }
+    .role-btn.selected   { border-color: var(--teal); background: var(--teal); color: #fff; }
+    .role-btn.selected .role-name { color: #fff; }
+    .role-btn.full       { grid-column: 1 / -1; flex-direction: row; gap: 12px; padding: 10px 16px; }
+    .role-btn.full i     { font-size: 18px; }
+    .divider {
+      grid-column: 1 / -1;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-sec);
+      margin: 4px 0;
+      position: relative;
+    }
+    .divider::before, .divider::after {
+      content: ''; position: absolute; top: 50%;
+      width: 38%; height: 1px; background: var(--gray-mid);
+    }
+    .divider::before { left: 0; } .divider::after { right: 0; }
+    .toggle-pass {
+      position: absolute; right: 14px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; padding: 0;
+      color: var(--text-sec); font-size: 17px; transition: var(--tr);
+    }
+    .toggle-pass:hover { color: var(--teal); }
+
+    /* Aviso de sesión expirada o sin permisos */
+    .session-msg {
+      width: 100%;
+      padding: 9px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 12px;
+      display: none;
+      align-items: center;
+      gap: 7px;
+      background: #fff3cd;
+      color: #7a5a00;
+      border: 1px solid #ffe082;
+    }
+    .session-msg.show { display: flex; }
+  </style>
+</head>
+<body class="page-login">
+
+<div class="login-card">
+  <img src="img/LOGO NEGRO.png" alt="Kika" class="logo">
+  <h2>Sistema de Costeo</h2>
+
+  <!-- Aviso cuando el guard redirige aquí con un mensaje -->
+  <div class="session-msg" id="sessionMsg">
+    <i class="ri-alert-line"></i>
+    <span id="sessionMsgText"></span>
+  </div>
+
+  <p style="font-size:12px;color:var(--text-sec);text-align:center;margin-bottom:14px">
+    Selecciona tu perfil e ingresa tus credenciales
+  </p>
+
+  <!-- SELECTOR DE ROL -->
+  <div class="role-grid">
+    <button class="role-btn" data-role="1" onclick="selRole(this)">
+      <i class="ri-box-3-line"></i>
+      <span class="role-name">Materia Prima</span>
+      <span class="role-desc">Telas · Ins. Variables · Ins. Fijos</span>
+    </button>
+    <button class="role-btn" data-role="2" onclick="selRole(this)">
+      <i class="ri-calculator-line"></i>
+      <span class="role-name">Costeo</span>
+      <span class="role-desc">Conformación de precio</span>
+    </button>
+    <button class="role-btn full" data-role="3" onclick="selRole(this)">
+      <i class="ri-bar-chart-line"></i>
+      <span class="role-name">Consulta</span>
+      <span class="role-desc">Ver todos los costos y precios de venta</span>
+    </button>
+    <div class="divider">Otros accesos</div>
+    <button class="role-btn full" data-role="4" onclick="selRole(this)">
+      <i class="ri-shield-user-fill"></i>
+      <span class="role-name">Administrador</span>
+      <span class="role-desc">Usuarios · Soporte · Configuración</span>
+    </button>
+  </div>
+
+  <div id="loginErr" style="font-size:11px;color:var(--red);min-height:14px;margin-bottom:4px;width:100%"></div>
+
+  <form id="loginForm" novalidate style="width:100%">
+
+    <div class="input-group">
+      <i class="ri-mail-line"></i>
+      <input id="email" type="email" placeholder="Correo electrónico" autocomplete="email">
+    </div>
+    <div class="error-msg" id="err-email"></div>
+
+    <div class="input-group" style="margin-top:10px;position:relative">
+      <i class="ri-lock-line"></i>
+      <input id="password" type="password" placeholder="Contraseña" autocomplete="current-password">
+      <button type="button" class="toggle-pass" id="togglePass" tabindex="-1">
+        <i class="ri-eye-off-line" id="eyeIcon"></i>
+      </button>
+    </div>
+    <div class="error-msg" id="err-password"></div>
+
+    <button type="submit" class="btn-login" id="btnLogin" style="margin-top:18px">
+      <span id="btnText">ACCEDER</span>
+    </button>
+
+  </form>
+</div>
+
+<script>
+  /* ── Estado ─────────────────────────────────── */
+  let roleSeleccionado = null;
+  const API_URL = 'http://localhost:3000/api';
+
+  /* ── Mostrar mensaje del guard si viene redirigido ── */
+  const params = new URLSearchParams(window.location.search);
+  const msgParam = params.get('msg');
+  if (msgParam) {
+    const box = document.getElementById('sessionMsg');
+    document.getElementById('sessionMsgText').textContent = msgParam;
+    box.classList.add('show');
+  }
+
+  /* ── Si ya tiene sesión activa, redirigir al shell ── */
+  (function verificarSesionExistente() {
+    const token   = sessionStorage.getItem('kika_token');
+    const usuario = JSON.parse(sessionStorage.getItem('kika_usuario') || 'null');
+    if (!token || !usuario) return;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (!payload.exp || Date.now() / 1000 < payload.exp) {
+        window.location.href = 'pages/shells/Interfas_Admin.html';
+      }
+    } catch { /* token inválido — dejar en login */ }
+  })();
+
+  /* ── Selección de rol ─────────────────────── */
+  function selRole(btn) {
+    document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    roleSeleccionado = btn.dataset.role;
+    document.getElementById('loginErr').textContent = '';
+  }
+
+  /* ── Toggle contraseña ────────────────────── */
+  document.getElementById('togglePass').addEventListener('click', () => {
+    const input   = document.getElementById('password');
+    const icon    = document.getElementById('eyeIcon');
+    const visible = input.type === 'text';
+    input.type     = visible ? 'password' : 'text';
+    icon.className = visible ? 'ri-eye-off-line' : 'ri-eye-line';
+  });
+
+  /* ── Limpiar errores al escribir ──────────── */
+  ['email', 'password'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      document.getElementById(`err-${id}`).textContent = '';
+      document.getElementById('loginErr').textContent  = '';
+    });
+  });
+
+  /* ── Submit del formulario ────────────────── */
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    let valid = true;
+
+    if (!roleSeleccionado) {
+      document.getElementById('loginErr').textContent = 'Selecciona un perfil para continuar';
+      return;
+    }
+    if (!email) {
+      mostrarError('err-email', 'Ingresa tu correo electrónico'); valid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      mostrarError('err-email', 'Correo electrónico no válido'); valid = false;
+    }
+    if (!password) {
+      mostrarError('err-password', 'Ingresa tu contraseña'); valid = false;
+    }
+    if (!valid) return;
+
+    const btn  = document.getElementById('btnLogin');
+    const text = document.getElementById('btnText');
+    btn.disabled     = true;
+    text.textContent = 'Verificando...';
+
+    try {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ Email: email, Password: password, ROL_idROL: roleSeleccionado })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        document.getElementById('loginErr').textContent = data.message || 'Error al iniciar sesión';
+        return;
+      }
+
+      // Guardar sesión y redirigir al shell correspondiente
+      sessionStorage.setItem('kika_token',   data.token);
+      sessionStorage.setItem('kika_usuario', JSON.stringify(data.usuario));
+      sessionStorage.setItem('kika_rol',     data.usuario.ROL_idROL);
+
+      window.location.href = 'pages/shells/Interfas_Admin.html';
+
+    } catch {
+      document.getElementById('loginErr').textContent = 'No se pudo conectar al servidor. Intenta de nuevo.';
+    } finally {
+      btn.disabled     = false;
+      text.textContent = 'ACCEDER';
+    }
+  });
+
+  function mostrarError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+</script>
+</body>
+</html>
