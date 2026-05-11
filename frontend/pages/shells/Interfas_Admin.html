@@ -7,6 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../css/kika.css">
+  <link rel="stylesheet" href="../../css/shell.css">
 </head>
 
 <body class="page-shell">
@@ -15,6 +16,78 @@
   <div class="navbar">
     <img src="../../img/LOGO BLANCO.png" alt="Kika" class="logo"
          onerror="this.src='../../img/LOGO NEGRO.png'">
+
+    <nav class="topnav">
+
+      <!-- Colecciones: directo, todos -->
+      <div class="tn-group">
+        <button class="tn-btn" onclick="cargar('../producto/producto.html?tab=colecciones',this)">
+          <i class="ri-folder-line"></i> Colecciones
+        </button>
+      </div>
+
+      <!-- Usuarios: solo Admin (rol 4) -->
+      <div class="tn-group" id="secUsuarios" style="display:none">
+        <button class="tn-btn">
+          <i class="ri-user-settings-line"></i> Usuarios
+          <i class="ri-arrow-down-s-line"></i>
+        </button>
+        <div class="tn-dropdown">
+          <a href="#" onclick="cargar('../auth/Creacion_Usuario.html',this)">
+            <i class="ri-user-add-line"></i> Crear Usuario
+          </a>
+          <a href="#" onclick="cargar('../auth/Eliminar_Usuario.html',this)">
+            <i class="ri-user-unfollow-line"></i> Eliminar Usuario
+          </a>
+          <a href="#" onclick="cargar('../auth/Bloquear_Usuario.html',this)">
+            <i class="ri-user-forbid-line"></i> Bloquear / Desbloquear
+          </a>
+        </div>
+      </div>
+
+      <!-- Costeo: roles 4, 1, 2 -->
+      <div class="tn-group" id="secCosteo" style="display:none">
+        <button class="tn-btn">
+          <i class="ri-calculator-line"></i>
+          <span id="labelCosteo">Costeo</span>
+          <i class="ri-arrow-down-s-line"></i>
+        </button>
+        <div class="tn-dropdown" id="dropCosteo"></div>
+      </div>
+
+      <!-- Soporte: todos -->
+      <div class="tn-group">
+        <button class="tn-btn">
+          <i class="ri-customer-service-2-line"></i> Soporte
+          <i class="ri-arrow-down-s-line"></i>
+        </button>
+        <div class="tn-dropdown">
+          <a href="#" onclick="cargar('../soporte/Soporte.html',this)">
+            <i class="ri-tools-line"></i> Soporte Técnico
+          </a>
+          <a href="#" id="liSoporteAdmin" style="display:none"
+             onclick="cargar('../soporte/Soporte_Admin.html',this)">
+            <i class="ri-list-check"></i> Gestión de Tickets
+          </a>
+        </div>
+      </div>
+
+      <!-- Consulta: directo, todos -->
+      <div class="tn-group">
+        <button class="tn-btn" onclick="cargar('../producto/producto.html?tab=consulta',this)">
+          <i class="ri-search-line"></i> Consulta
+        </button>
+      </div>
+
+      <!-- Historial: directo, todos -->
+      <div class="tn-group">
+        <button class="tn-btn" onclick="cargar('../producto/producto.html?tab=historial',this)">
+          <i class="ri-history-line"></i> Historial
+        </button>
+      </div>
+
+    </nav>
+
     <div class="navbar-right">
       <div class="user-badge">
         <i class="ri-user-line"></i>
@@ -27,86 +100,76 @@
     </div>
   </div>
 
-  <!-- SHELL -->
-  <div class="shell-body">
-
-    <!-- SIDEBAR — las secciones se muestran según el rol -->
-    <div class="sidebar">
-
-      <!-- Solo Administrador (rol 4) -->
-      <div class="sidebar-section" id="secUsuarios" style="display:none">
-        <div class="sidebar-title">
-          <i class="ri-user-settings-line"></i> Usuarios
-        </div>
-        <ul class="sidebar-menu">
-          <li><a href="#" onclick="cargar('../auth/Creacion_Usuario.html',this)" class="active">
-            <i class="ri-user-add-line"></i> Crear Usuario
-          </a></li>
-          <li><a href="#" onclick="cargar('../auth/Eliminar_Usuario.html',this)">
-            <i class="ri-user-unfollow-line"></i> Eliminar Usuario
-          </a></li>
-          <li><a href="#" onclick="cargar('../auth/Bloquear_Usuario.html',this)">
-            <i class="ri-user-forbid-line"></i> Bloquear / Desbloquear
-          </a></li>
-        </ul>
-      </div>
-
-      <!-- Visible para todos -->
-      <div class="sidebar-section">
-        <div class="sidebar-title">
-          <i class="ri-customer-service-2-line"></i> Soporte
-        </div>
-        <ul class="sidebar-menu">
-          <li><a href="#" onclick="cargar('../soporte/Soporte.html',this)">
-            <i class="ri-tools-line"></i> Soporte Técnico
-          </a></li>
-          <!-- Solo Admin ve el panel de gestión de tickets -->
-          <li id="liSoporteAdmin" style="display:none">
-            <a href="#" onclick="cargar('../soporte/Soporte_Admin.html',this)">
-              <i class="ri-list-check"></i> Gestión de Tickets
-            </a>
-          </li>
-        </ul>
-      </div>
-
-    </div>
-
-    <!-- CONTENIDO -->
-    <div class="content-panel">
-      <iframe id="frame" src="../auth/Creacion_Usuario.html"></iframe>
-    </div>
-
+  <!-- CONTENIDO -->
+  <div class="content-full">
+    <iframe id="frame" src="../producto/producto.html?tab=colecciones"></iframe>
   </div>
 
   <script src="../../js/kika.js"></script>
   <script>
-    /* ── 1. Guard: verifica sesión. Solo Admin puede entrar aquí ── */
-    const sesion = requireAuth([4]);
-    // requireAuth redirige automáticamente si no hay token o el rol no es 4
+    const sesion = requireAuth([1, 2, 3, 4]);
 
-    /* ── 2. Mostrar datos del usuario en el navbar ── */
     document.getElementById('nombreUsuario').textContent = sesion.usuario.Nombre;
     document.getElementById('rolUsuario').textContent    = ROLES[sesion.rol] || '';
 
-    /* ── 3. Mostrar secciones según el rol ──────── */
-    if (sesion.rol === 4) {
-      document.getElementById('secUsuarios').style.display      = 'block';
-      document.getElementById('liSoporteAdmin').style.display   = 'list-item';
+    const rol        = sesion.rol;
+    const dropCosteo = document.getElementById('dropCosteo');
+
+    if (rol === 4) {
+      dropCosteo.innerHTML = `
+        <a href="#" onclick="cargar('../producto/producto.html?tab=telas',this)">
+          <i class="ri-ruler-line"></i> Telas & Confección
+        </a>
+        <a href="#" onclick="cargar('../producto/producto.html?tab=insumos',this)">
+          <i class="ri-scissors-line"></i> Insumos
+        </a>
+        <a href="#" onclick="cargar('../producto/producto.html?tab=consolidado',this)">
+          <i class="ri-bar-chart-line"></i> Consolidado
+        </a>
+        <a href="#" onclick="cargar('../producto/producto.html?tab=canales',this)">
+          <i class="ri-store-line"></i> Canal de Venta
+        </a>`;
+      document.getElementById('secUsuarios').style.display    = 'flex';
+      document.getElementById('secCosteo').style.display      = 'flex';
+      document.getElementById('liSoporteAdmin').style.display = 'block';
+      document.getElementById('labelCosteo').textContent      = 'Administrador';
     }
 
-    /* ── 4. Exponer datos de sesión a los iframes ── */
+    if (rol === 1) {
+      dropCosteo.innerHTML = `
+        <a href="#" onclick="cargar('../producto/producto.html?tab=telas',this)">
+          <i class="ri-ruler-line"></i> Telas & Confección
+        </a>
+        <a href="#" onclick="cargar('../producto/producto.html?tab=insumos',this)">
+          <i class="ri-scissors-line"></i> Insumos
+        </a>`;
+      document.getElementById('secCosteo').style.display = 'flex';
+      document.getElementById('labelCosteo').textContent = 'Materia Prima';
+    }
+
+    if (rol === 2) {
+      dropCosteo.innerHTML = `
+        <a href="#" onclick="cargar('../producto/producto.html?tab=consolidado',this)">
+          <i class="ri-bar-chart-line"></i> Consolidado
+        </a>
+        <a href="#" onclick="cargar('../producto/producto.html?tab=canales',this)">
+          <i class="ri-store-line"></i> Canal de Venta
+        </a>`;
+      document.getElementById('secCosteo').style.display = 'flex';
+      document.getElementById('labelCosteo').textContent = 'Costeo';
+    }
+
     window.kikaToken   = sesion.token;
     window.kikaUsuario = sesion.usuario;
-    window.kikaRol     = sesion.rol;
+    window.kikaRol     = parseInt(sesion.rol);
 
-    /* ── 5. Navegación del sidebar ──────────────── */
     function cargar(pagina, enlace) {
       document.getElementById('frame').src = pagina;
-      document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
-      enlace.classList.add('active');
+      document.querySelectorAll('.tn-dropdown a, .tn-btn')
+        .forEach(a => a.classList.remove('active'));
+      if (enlace) enlace.classList.add('active');
     }
 
-    /* ── 6. Cerrar sesión con modal de confirmación ── */
     document.getElementById('btnSalir').addEventListener('click', async () => {
       const ok = await confirmar('¿Deseas cerrar la sesión?', 'warning', 'Salir');
       if (!ok) return;

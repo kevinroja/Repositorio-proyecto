@@ -11,8 +11,8 @@ class UsuarioController {
     // POST /api/auth/login
     static async login(req, res) {
         try {
-            const { Email, Password } = req.body;
-            const resultado = await UsuarioService.login(Email, Password);
+            const { Email, Password, ROL_idROL } = req.body;
+            const resultado = await UsuarioService.login(Email, Password, ROL_idROL);
             return res.status(200).json({ ok: true, ...resultado });
         } catch (err) {
             return res.status(401).json({ ok: false, message: err.message });

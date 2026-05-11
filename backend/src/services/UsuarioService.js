@@ -7,15 +7,12 @@ const SALT_ROUNDS = 10;
 const JWT_SECRET  = process.env.JWT_SECRET  || 'clave_secreta_cambiar_en_produccion';
 const JWT_EXPIRES = process.env.JWT_EXPIRES || '8h';
 
-// ============================================
-// SERVICE: UsuarioService
-// ============================================
 class UsuarioService {
 
     // ------------------------------------------
     // LOGIN
     // ------------------------------------------
-    static async login(email, password) {
+    static async login(email, password, rolSeleccionado) {
         if (!email || !password)
             throw new Error('Email y contraseña son requeridos');
 
@@ -30,29 +27,24 @@ class UsuarioService {
         if (!passwordValido)
             throw new Error('Credenciales incorrectas');
 
-        // FIX: garantizar que el rol siempre se lea correctamente
-        // findByEmail hace JOIN con ROL, puede llegar como idROL o ROL_idROL
         const rolId = usuario.ROL_idROL ?? usuario.idROL;
 
+        if (parseInt(rolSeleccionado) !== parseInt(rolId))
+            throw new Error('El perfil seleccionado no corresponde a tu usuario');
+
         const token = jwt.sign(
-            {
-                id:     usuario.idUSUARIO,
-                nombre: usuario.Nombre,
-                rol:    rolId,
-            },
+            { id: usuario.idUSUARIO, nombre: usuario.Nombre, rol: rolId },
             JWT_SECRET,
             { expiresIn: JWT_EXPIRES }
         );
 
-        // FIX: construir el objeto de respuesta manualmente para garantizar
-        // que ROL_idROL siempre esté presente con el nombre correcto
         const usuarioSeguro = {
             idUSUARIO:  usuario.idUSUARIO,
             Nombre:     usuario.Nombre,
             Email:      usuario.Email,
             Activo:     usuario.Activo,
-            ROL_idROL:  rolId,           // ← siempre presente, siempre número
-            Rol:        usuario.Rol,     // nombre del rol (ej: "Administrador")
+            ROL_idROL:  rolId,
+            Rol:        usuario.Rol,
         };
 
         return { usuario: usuarioSeguro, token };
