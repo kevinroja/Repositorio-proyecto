@@ -35,7 +35,7 @@ body {
   font-family: 'DM Sans', sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-height: 100vh;
+  min-height: 100%;   /* era 100vh — ese valor ignora el iframe y desborda */
   font-size: 14px;
 }
 
@@ -938,11 +938,19 @@ body.page-costeo {
 .sidebar-section[data-rol-required] { display: none; }
 
 /* ============================================================
-   23. SHELL — iframe sin scroll horizontal
+   23. SHELL — iframe con scroll completo (horizontal + vertical)
    ============================================================ */
+.content-panel {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
 .content-panel iframe {
   width: 100%;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   border: none;
   display: block;
 }

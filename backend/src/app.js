@@ -2,6 +2,7 @@ require('dotenv').config();
 const express        = require('express');
 const cors           = require('cors');
 const usuarioRoutes  = require('./src/routes/usuario.routes');
+const coleccionRoutes = require('./src/routes/coleccionRoutes');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -14,6 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 // ─── Rutas ───────────────────────────────────────────────
 app.use('/api/auth',     usuarioRoutes); // POST /api/auth/login
 app.use('/api/usuarios', usuarioRoutes); // GET PUT POST DELETE /api/usuarios
+app.use('/api/colecciones', coleccionRoutes);
 
 // ─── Ruta de salud ────────────────────────────────────────
 app.get('/api/health', (req, res) => {

@@ -2,7 +2,11 @@ require('dotenv').config();
 const express       = require('express');
 const cors          = require('cors');
 const path          = require('path');
-const usuarioRoutes = require('./src/routes/usuario.routes');
+const usuarioRoutes   = require('./src/routes/usuario.routes');
+const coleccionRoutes = require('./src/routes/coleccionRoutes');
+const prendaRoutes = require('./src/routes/prenda.routes');
+const canalRoutes  = require('./src/routes/canal.routes');
+
  
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -14,10 +18,13 @@ app.use(express.urlencoded({ extended: true }));
  
 // ─── Servir frontend estático ─────────────────────────────
 app.use(express.static(path.join(__dirname, '../frontend')));
- 
+
 // ─── Rutas API ────────────────────────────────────────────
-app.use('/api/auth',     usuarioRoutes);
-app.use('/api/usuarios', usuarioRoutes);
+app.use('/api/auth',        usuarioRoutes);
+app.use('/api/usuarios',    usuarioRoutes);
+app.use('/api/colecciones', coleccionRoutes);
+app.use('/api/prendas', prendaRoutes);
+app.use('/api/canales', canalRoutes);
  
 // ─── Ruta de salud ────────────────────────────────────────
 app.get('/api/health', (req, res) => {

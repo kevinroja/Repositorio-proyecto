@@ -81,8 +81,7 @@ function buildUI() {
 
   // ── Construir panes ───────────────────────────────────────
   buildPaneColecciones();
-  buildPaneTelas();
-  buildPaneInsumos();
+  buildPaneMateria();
   buildPaneConsolidado();
   buildPaneCanales();
   buildPaneConsulta();
@@ -112,6 +111,7 @@ function goTab(id, btn) {
 
   activeTab = id;
 
+  if (id === 'materia')     { renderTelas(); renderInsumos(); }
   if (id === 'consolidado') recalc();
   if (id === 'historial')   renderHistorial();
   if (id === 'colecciones') renderColecciones();

@@ -13,12 +13,28 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../css/kika.css">
   <link rel="stylesheet" href="../../css/costeo.css">
-  <style>
-    #topbar  { display: none !important; }
-    body     { overflow: auto; height: auto; }
-    #content { height: auto; overflow: visible; }
-    .pane    { height: auto; overflow: visible; }
-  </style>
+<style>
+  #topbar { display: none !important; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: auto;
+  }
+
+  #content {
+    height: auto;
+    overflow: visible;
+    min-width: max-content;
+  }
+
+  .pane {
+    height: auto;
+    overflow: visible;
+    min-width: max-content;
+  }
+</style>
 </head>
 <body>
 <!-- ── TOPBAR INTERNO del módulo ──────────────────────────── -->

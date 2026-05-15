@@ -2,16 +2,16 @@
  * ============================================================
  * ARCHIVO: js/pane-colecciones.js
  * DESCRIPCIÓN: Módulo de gestión de colecciones.
- * Permite crear, editar y eliminar colecciones según el rol.
- * Caso de uso: Módulo Colección del diagrama UML.
- * Depende de: utils.js, state.js, auth.js
+ * Conectado a MySQL via API REST Node.js
  * ============================================================
  */
+
+const API       = window.parent?.API_URL || 'http://localhost:3000/api';
+const getToken  = () => window.parent?.kikaToken || sessionStorage.getItem('kika_token');
 
 
 /**
  * Construye el HTML completo del pane de Colecciones.
- * Muestra el botón "+ Nueva Colección" solo si el rol puede editar.
  */
 function buildPaneColecciones() {
   const pane = document.getElementById('pane-colecciones');
@@ -27,15 +27,48 @@ function buildPaneColecciones() {
     ${edit ? `<div style="margin-bottom:14px">
       <button class="btn btn-g" onclick="openColModal()">+ Nueva Colección</button>
     </div>` : ''}
-    <div id="col-cards-wrap" class="col-cards"></div>`;
+    <div id="col-cards-wrap" class="col-cards">
+      <div style="color:var(--tx3);font-style:italic;padding:20px">Cargando...</div>
+    </div>`;
 
-  renderColecciones();
+  cargarColecciones();
+}
+
+
+/**
+ * Carga las colecciones desde la BD y actualiza el estado global.
+ */
+async function cargarColecciones() {
+  try {
+    const res  = await fetch(`${API}/colecciones`, {
+      headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.message);
+
+    // Mapear al formato interno del frontend
+    COLECCIONES = json.data.map(c => ({
+      id:        c.idCOLECCION,
+      name:      c.NombreColeccion,
+      season:    c.Temporada,
+      year:      c.Año,
+      createdAt: c.createdAt || ''
+    }));
+
+    renderColecciones();
+
+  } catch (err) {
+    const wrap = document.getElementById('col-cards-wrap');
+    if (wrap) wrap.innerHTML = `
+      <div style="color:var(--red);padding:20px">
+        ❌ Error cargando colecciones: ${err.message}
+      </div>`;
+  }
 }
 
 
 /**
  * Renderiza las tarjetas de colecciones en el grid.
- * Muestra acciones de editar/eliminar solo si el rol lo permite.
  */
 function renderColecciones() {
   const wrap = document.getElementById('col-cards-wrap');
@@ -48,7 +81,6 @@ function renderColecciones() {
   }
 
   wrap.innerHTML = COLECCIONES.map(c => {
-    // Contar cuántas referencias pertenecen a esta colección
     const refs = TELAS.filter(t => t.col === c.name).length;
     return `
       <div class="col-card">
@@ -75,18 +107,14 @@ function renderColecciones() {
 
 /**
  * Abre el modal para crear o editar una colección.
- * Si se pasa un ID, precarga los datos de esa colección.
- * @param {string|null} id - ID de colección a editar, null para nueva
  */
 function openColModal(id = null) {
   editingColId = id;
-  const c = id ? COLECCIONES.find(x => x.id === id) : null;
+  const c = id ? COLECCIONES.find(x => x.id == id) : null;
 
-  // Cambiar título del modal según la acción
   document.getElementById('col-modal-title').textContent =
     id ? 'Editar Colección' : 'Nueva Colección';
 
-  // Precargar valores si es edición
   document.getElementById('cm-name').value   = c?.name   || '';
   document.getElementById('cm-season').value = c?.season || 'PF';
   document.getElementById('cm-year').value   = c?.year   || 2026;
@@ -105,63 +133,69 @@ function closeColModal() {
 
 
 /**
- * Guarda la colección nueva o actualiza la existente.
- * Reconstruye el pane para mostrar los cambios inmediatamente.
+ * Guarda la colección nueva o actualiza la existente en la BD.
  */
-function saveCollection() {
-  const name = document.getElementById('cm-name').value.trim();
-  if (!name) { alert('Ingresa el nombre de la colección'); return; }
+async function saveCollection() {
+  const name   = document.getElementById('cm-name').value.trim();
+  const season = document.getElementById('cm-season').value;
+  const year   = +document.getElementById('cm-year').value;
 
-  if (editingColId) {
-    // ── EDITAR colección existente ──────────────────────────
-    const c = COLECCIONES.find(x => x.id === editingColId);
-    const old = c.name;
-    c.name   = name;
-    c.season = document.getElementById('cm-season').value;
-    c.year   = +document.getElementById('cm-year').value;
-    c.desc   = document.getElementById('cm-desc').value;
-    addHist('Editó colección', 'Colecciones', `${old} → ${name}`);
-    toast('✓ Colección actualizada');
-  } else {
-    // ── CREAR colección nueva ───────────────────────────────
-    COLECCIONES.push({
-      id:        ID(),
-      name,
-      season:    document.getElementById('cm-season').value,
-      year:      +document.getElementById('cm-year').value,
-      desc:      document.getElementById('cm-desc').value,
-      createdBy: currentUser.name,
-      createdAt: now()
-    });
-    addHist('Creó colección', 'Colecciones', name);
-    toast('✓ Colección creada');
+  if (!name) {
+    toast('⚠ Ingresa el nombre de la colección', 'error');
+    return;
   }
 
-  closeColModal();
+  const method = editingColId ? 'PUT' : 'POST';
+  const url    = editingColId
+    ? `${API}/colecciones/${editingColId}`
+    : `${API}/colecciones`;
 
-  // Reconstruir el pane para mostrar los datos actualizados
-  buildPaneColecciones();
+  try {
+    const res  = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({ NombreColeccion: name, Temporada: season, Año: year })
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.message);
 
-  // Si ya estamos en este tab, re-activarlo para que se vea el cambio
-  if (activeTab === 'colecciones')
-    goTab('colecciones', document.getElementById('tab-colecciones'));
+    addHist(editingColId ? 'Editó colección' : 'Creó colección', 'Colecciones', name);
+    toast(editingColId ? '✓ Colección actualizada' : '✓ Colección creada');
+    closeColModal();
+    await cargarColecciones();
+
+    if (activeTab === 'colecciones')
+      goTab('colecciones', document.getElementById('tab-colecciones'));
+
+  } catch (err) {
+    toast('❌ ' + err.message, 'error');
+  }
 }
 
+async function deleteCollection(id) {
+  const c = COLECCIONES.find(x => x.id == id);
+  const ok = await window.parent.confirmar(`¿Eliminar colección "${c?.name}"?`, 'danger', 'Eliminar');
+  if (!ok) return;
 
-/**
- * Elimina una colección tras confirmación del usuario.
- * @param {string} id - ID de la colección a eliminar
- */
-function deleteCollection(id) {
-  const c = COLECCIONES.find(x => x.id === id);
-  if (!confirm(`¿Eliminar colección "${c?.name}"?`)) return;
+  try {
+    const res  = await fetch(`${API}/colecciones/${id}`, {
+      method:  'DELETE',
+      headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.message);
 
-  addHist('Eliminó colección', 'Colecciones', c?.name);
-  COLECCIONES = COLECCIONES.filter(x => x.id !== id);
+    addHist('Eliminó colección', 'Colecciones', c?.name);
+    toast('✓ Colección eliminada');
+    await cargarColecciones();
 
-  buildPaneColecciones();
-  if (activeTab === 'colecciones')
-    goTab('colecciones', document.getElementById('tab-colecciones'));
+    if (activeTab === 'colecciones')
+      goTab('colecciones', document.getElementById('tab-colecciones'));
 
-  toast('✓ Colección eliminada');
+  } catch (err) {
+    toast('❌ ' + err.message, 'error');
+  }
 }

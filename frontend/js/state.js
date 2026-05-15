@@ -35,12 +35,12 @@ const ROLES = {
   admin: {
     label: 'Administrador',
     color: '#FFD166',
-    tabs: ['colecciones','telas','insumos','consolidado','canales','consulta','historial']
+    tabs: ['colecciones','materia','consolidado','canales','consulta','historial']
   },
   materia_prima: {
     label: 'Jefe Materia Prima',
     color: '#52B788',
-    tabs: ['colecciones','telas','insumos','consulta','historial']
+    tabs: ['colecciones','materia','consulta','historial']
   },
   finanzas: {
     label: 'Costeo / Finanzas',
@@ -52,8 +52,7 @@ const ROLES = {
 // ── Definición de tabs ───────────────────────────────────────
 const TAB_DEFS = [
   { id: 'colecciones', icon: '🗂',  label: 'Colecciones'        },
-  { id: 'telas',       icon: '📐',  label: 'Telas & Confección' },
-  { id: 'insumos',     icon: '🪡',  label: 'Insumos'            },
+  { id: 'materia',     icon: '📐',  label: 'Telas & Confección' },
   { id: 'consolidado', icon: '📊',  label: 'Consolidado'        },
   { id: 'canales',     icon: '🏪',  label: 'Canal de Venta'     },
   { id: 'consulta',    icon: '🔍',  label: 'Consulta'           },

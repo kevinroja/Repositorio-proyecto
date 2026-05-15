@@ -31,16 +31,33 @@ function readExcelFile(file, tab) {
   reader.onload = e => {
     try {
       const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-      if (tab === 'telas') {
-        const sheetName = wb.SheetNames.find(n => /tela/i.test(n)) || wb.SheetNames[0];
-        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '' });
-        importTelasRows(rows, sheetName, statusEl);
-      } else {
-        const sheetName = wb.SheetNames.find(n => /insumo/i.test(n))
-                       || wb.SheetNames[1] || wb.SheetNames[0];
-        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '' });
-        importInsumosRows(rows, sheetName, statusEl);
+
+      // ── Hoja TELA ──────────────────────────────────────────
+      const sheetTela = wb.SheetNames.find(n => /^tela/i.test(n.trim()))
+                     || wb.SheetNames[0];
+      if (wb.Sheets[sheetTela]) {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetTela], { header: 1, defval: '' });
+        importTelasRows(rows, sheetTela, tab === 'telas' ? statusEl : null);
       }
+
+      // ── Hoja INSUMOS variables ─────────────────────────────
+      const sheetIns = wb.SheetNames.find(n => /^insumos?$/i.test(n.trim()))
+                    || wb.SheetNames.find(n => /insumo/i.test(n) && !/fijo/i.test(n));
+      if (sheetIns && wb.Sheets[sheetIns]) {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetIns], { header: 1, defval: '' });
+        importInsumosRows(rows, sheetIns, tab === 'insumos' ? statusEl : null);
+      }
+
+      // ── Hoja INSUMOS FIJOS ─────────────────────────────────
+      const sheetFijos = wb.SheetNames.find(n => /fijo/i.test(n));
+      if (sheetFijos && wb.Sheets[sheetFijos]) {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetFijos], { header: 1, defval: '' });
+        importFijosRows(rows, sheetFijos);
+      }
+
+      const hojasCargadas = [sheetTela, sheetIns, sheetFijos].filter(Boolean).length;
+      toast(`✓ ${hojasCargadas} hoja(s) importadas del Excel`);
+
     } catch (err) {
       if (statusEl) {
         statusEl.textContent = '❌ Error al leer el fichero: ' + err.message;
@@ -49,6 +66,34 @@ function readExcelFile(file, tab) {
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+
+// ── IMPORTAR INSUMOS FIJOS DESDE EXCEL ──────────────────────
+
+function importFijosRows(rows, sheetName) {
+  // Formato HORIZONTAL: Nombre | Cantidad | Precio  (repetido por cada fijo)
+  // Todos los datos están en la fila 2 (índice 1), la fila 1 son encabezados
+  const dataRow = rows[1];
+  if (!dataRow) return;
+
+  FIJOS = [];
+  let added = 0;
+
+  for (let i = 0; i + 2 < dataRow.length; i += 3) {
+    const name   = String(dataRow[i]     || '').trim();
+    const qty    = parseFloat(dataRow[i + 1]) || 1;
+    const precio = parseFloat(dataRow[i + 2]) || 0;
+    if (!name) break;
+    FIJOS.push({ id: ID(), name, precio, qty });
+    added++;
+  }
+
+  if (added) {
+    renderFijosModal();
+    renderFijosSummary();
+    recalc();
+  }
 }
 
 

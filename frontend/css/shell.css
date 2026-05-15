@@ -91,11 +91,17 @@ body.page-shell {
 /* ── CONTENIDO FULL WIDTH ── */
 .content-full {
   flex: 1;
+  min-height: 0;               /* crítico: permite que flex-child se encoja correctamente */
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
+
 .content-full iframe {
   width: 100%;
-  height: 100%;
+  flex: 1;
+  min-height: 0;               /* crítico: sin esto el iframe ignora el límite del padre */
   border: none;
   display: block;
+  overflow: auto;              /* habilita scroll dentro del iframe */
 }

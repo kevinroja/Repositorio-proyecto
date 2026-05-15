@@ -11,8 +11,8 @@ const pct = v => D(v) / 100;
 
 // Formatea número como COP sin decimales: 1234567 → "1.234.567"
 const fmt = n =>
-  new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 })
-    .format(Math.round(D(n)));
+  new Intl.NumberFormat('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    .format(D(n));
 
 // Alias de fmt para valores USD (redondeados al entero)
 const fmtU = n => fmt(Math.round(D(n)));
@@ -33,6 +33,9 @@ const esc = s =>
  */
 function cleanNum(v) {
   if (v === null || v === undefined || v === '') return '';
+  // Si ya es número (SheetJS lo parsea directo), usarlo tal cual
+  if (typeof v === 'number') return v;
+  // Si es string con formato europeo (punto=miles, coma=decimal)
   const s = String(v).replace(/[$\s]/g, '').replace(/\./g, '').replace(/,/g, '.');
   const n = parseFloat(s);
   return isNaN(n) ? '' : n;

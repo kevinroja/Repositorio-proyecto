@@ -1,38 +1,13 @@
 /**
  * ============================================================
  * ARCHIVO: js/pane-canales.js
- * DESCRIPCIÓN: Módulo de Canal de Venta.
- *
- * ¿QUÉ ES EL CANAL DE VENTA?
- * Un canal de venta es el destino comercial de la prenda:
- *   - USA (LLC): venta mayorista a tiendas en EEUU
- *   - Latinoamérica: distribuidores regionales
- *   - E-Commerce: venta directa al consumidor por web
- *
- * Cada canal tiene sus propios porcentajes de exportación,
- * aranceles, logística y markup, porque los costos varían
- * según el país de destino y el tipo de cliente.
- *
- * ESTADO ACTUAL: Los canales se guardan y pueden editarse.
- * PRÓXIMA VERSIÓN: Al activar un canal, sus parámetros
- * reemplazarán los del panel global del Consolidado.
- *
- * Solo visible para Administrador y Jefe de Finanzas.
- * Depende de: utils.js, state.js, auth.js
  * ============================================================
  */
 
-
-/**
- * Construye el HTML completo del pane de Canales.
- * Si el rol no tiene acceso muestra pantalla de acceso denegado.
- * Crea los canales por defecto si no existen aún.
- */
 function buildPaneCanales() {
   const pane = document.getElementById('pane-canales');
   if (!pane) return;
 
-  // Verificar acceso: solo Admin y Finanzas
   const canSee = ['admin', 'finanzas'].includes(currentUser?.role);
   if (!canSee) {
     pane.innerHTML = `
@@ -45,7 +20,6 @@ function buildPaneCanales() {
     return;
   }
 
-  // Crear canales predeterminados si no existen
   if (!CANALES.length) {
     CANALES = [
       {
@@ -73,7 +47,6 @@ function buildPaneCanales() {
       ${edit ? 'Puedes crear y editar canales' : 'Solo consulta'}
     </div>
 
-    <!-- Explicación del módulo -->
     <div style="background:var(--bllt);border:1px solid #BFDBFE;border-radius:var(--r2);
                 padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--blue)">
       <b>¿Cómo funciona?</b> Cada canal tiene sus propios porcentajes.
@@ -83,8 +56,12 @@ function buildPaneCanales() {
     </div>
 
     ${edit
-      ? `<div style="margin-bottom:14px">
+      ? `<div style="margin-bottom:14px;display:flex;gap:8px">
            <button class="btn btn-g" onclick="addCanal()">+ Nuevo Canal</button>
+           <button class="btn btn-g" onclick="guardarCanales()"
+             style="background:#1a6b7c">
+             💾 Guardar en BD
+           </button>
          </div>`
       : ''}
 
@@ -94,56 +71,43 @@ function buildPaneCanales() {
 }
 
 
-/**
- * Renderiza las tarjetas de canales de venta.
- * Cada tarjeta muestra los parámetros del canal con inputs
- * editables (Admin/Finanzas) o texto estático (solo lectura).
- */
 function renderCanales() {
   const grid = document.getElementById('canal-grid');
   if (!grid) return;
   const edit = canEdit('canales');
 
-  // Campos configurables de cada canal
   const fields = [
-    ['export',     'Exportación %',   'Costos de transporte y agente de exportación'],
-    ['arancel',    'Aranceles %',      'Impuesto de importación en el país destino'],
-    ['amerindias', 'Amerindias %',     'Costo de bodega y distribución Amerindias'],
-    ['factoring',  'Factoring %',      'Costo financiero de cobrar la cartera'],
-    ['ten11',      '10Eleven %',       'Comisión del showroom / agente comercial'],
-    ['rtMkup',     'RT Markup ×',      'Multiplicador de precio mayorista a minorista'],
+    ['export',     'Exportación %',  'Costos de transporte y agente de exportación'],
+    ['arancel',    'Aranceles %',     'Impuesto de importación en el país destino'],
+    ['amerindias', 'Amerindias %',    'Costo de bodega y distribución Amerindias'],
+    ['factoring',  'Factoring %',     'Costo financiero de cobrar la cartera'],
+    ['ten11',      '10Eleven %',      'Comisión del showroom / agente comercial'],
+    ['rtMkup',     'RT Markup ×',     'Multiplicador de precio mayorista a minorista'],
   ];
 
   grid.innerHTML = CANALES.map(c => `
     <div class="canal-card ${c.activo ? 'active-canal' : ''}">
       <div class="canal-name">
         ${esc(c.name)}
-        <!-- Badge de estado: verde = activo, ámbar = inactivo -->
         <span class="badge ${c.activo ? 'bg' : 'ba'}">
           ${c.activo ? '✓ Activo' : 'Inactivo'}
         </span>
       </div>
 
-      <!-- Parámetros del canal -->
       ${fields.map(([k, label, tooltip]) => `
         <div class="canal-field" title="${tooltip}">
           <label>${label}</label>
           ${edit
             ? `<input type="number" step=".1" value="${c.params[k]}"
                       onchange="updateCanal('${c.id}','${k}',this.value)">`
-            : `<span style="font-family:var(--mono);font-size:12px">
-                 ${c.params[k]}
-               </span>`}
+            : `<span style="font-family:var(--mono);font-size:12px">${c.params[k]}</span>`}
         </div>`).join('')}
 
-      <!-- Acciones del canal -->
       ${edit ? `
         <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
-          <!-- Activar/desactivar: solo un canal puede estar activo -->
           <button class="btn btn-o btn-sm" onclick="toggleCanal('${c.id}')">
             ${c.activo ? '⏸ Desactivar' : '▶ Activar'}
           </button>
-          <!-- Aplicar al Consolidado -->
           ${c.activo
             ? `<button class="btn btn-g btn-sm"
                        onclick="aplicarCanalAlConsolidado('${c.id}')">
@@ -158,34 +122,21 @@ function renderCanales() {
 }
 
 
-/**
- * Abre un prompt para crear un nuevo canal de venta.
- * En una versión con backend se reemplazaría por un modal.
- */
-function addCanal() {
-  const name = prompt('Nombre del nuevo canal de venta:');
-  if (!name) return;
+async function addCanal() {
+  const nombre = await window.parent.pedirTexto('Nombre del nuevo canal de venta:', 'Ej: Europa');
+  if (!nombre) return;
 
   CANALES.push({
-    id: ID(), name, activo: false,
-    params: {
-      export: 15, arancel: 10, amerindias: 3,
-      factoring: 4, ten11: 15, rtMkup: 2.4
-    }
+    id: ID(), name: nombre, activo: false,
+    params: { export: 15, arancel: 10, amerindias: 3, factoring: 4, ten11: 15, rtMkup: 2.4 }
   });
 
-  addHist('Creó canal de venta', 'Canales', name);
+  addHist('Creó canal de venta', 'Canales', nombre);
   renderCanales();
   toast('✓ Canal creado');
 }
 
 
-/**
- * Actualiza un parámetro específico de un canal.
- * @param {string} id    - ID del canal
- * @param {string} field - Parámetro a actualizar
- * @param {string} val   - Nuevo valor
- */
 function updateCanal(id, field, val) {
   const c = CANALES.find(x => x.id === id);
   if (c) c.params[field] = D(val);
@@ -194,15 +145,8 @@ function updateCanal(id, field, val) {
 }
 
 
-/**
- * Activa o desactiva un canal.
- * Solo un canal puede estar activo a la vez.
- * @param {string} id - ID del canal a cambiar
- */
 function toggleCanal(id) {
-  // Desactivar todos primero
   CANALES.forEach(c => c.activo = false);
-  // Activar el seleccionado
   const c = CANALES.find(x => x.id === id);
   if (c) c.activo = true;
 
@@ -212,17 +156,10 @@ function toggleCanal(id) {
 }
 
 
-/**
- * Aplica los parámetros del canal activo al Consolidado.
- * Actualiza los inputs del panel de parámetros globales y
- * recalcula todos los precios con los valores del canal.
- * @param {string} id - ID del canal a aplicar
- */
 function aplicarCanalAlConsolidado(id) {
   const c = CANALES.find(x => x.id === id);
   if (!c) return;
 
-  // Mapa de campos del canal → IDs de inputs del Consolidado
   const mapping = {
     export:     'p-exp',
     arancel:    'p-aran',
@@ -232,18 +169,13 @@ function aplicarCanalAlConsolidado(id) {
     rtMkup:     'p-rt',
   };
 
-  // Actualizar cada input del Consolidado con el valor del canal
   let applied = 0;
   Object.entries(mapping).forEach(([cField, inputId]) => {
     const el = document.getElementById(inputId);
-    if (el) {
-      el.value = c.params[cField];
-      applied++;
-    }
+    if (el) { el.value = c.params[cField]; applied++; }
   });
 
   if (applied > 0) {
-    // Recalcular con los nuevos parámetros
     recalc();
     addHist('Aplicó canal al Consolidado', 'Canales', c.name);
     toast(`✓ Parámetros de "${c.name}" aplicados al Consolidado`);
@@ -253,16 +185,32 @@ function aplicarCanalAlConsolidado(id) {
 }
 
 
-/**
- * Elimina un canal de venta tras confirmación.
- * @param {string} id - ID del canal a eliminar
- */
-function deleteCanal(id) {
+async function deleteCanal(id) {
   const c = CANALES.find(x => x.id === id);
-  if (!confirm(`¿Eliminar canal "${c?.name}"?`)) return;
+  const ok = await window.parent.confirmar(`¿Eliminar canal "${c?.name}"?`, 'danger', 'Eliminar');
+  if (!ok) return;
 
   CANALES = CANALES.filter(x => x.id !== id);
   addHist('Eliminó canal de venta', 'Canales', c?.name);
   renderCanales();
   toast('✓ Canal eliminado');
+}
+
+
+async function guardarCanales() {
+  const API   = window.parent?.API_URL || 'http://localhost:3000/api';
+  const token = window.parent?.kikaToken || sessionStorage.getItem('kika_token');
+
+  try {
+    const res  = await fetch(`${API}/canales/guardar`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ canales: CANALES })
+    });
+    const json = await res.json();
+    if (json.ok) toast('✓ Canales guardados en BD');
+    else toast('❌ ' + json.message, 'error');
+  } catch (err) {
+    toast('❌ Error de conexión', 'error');
+  }
 }

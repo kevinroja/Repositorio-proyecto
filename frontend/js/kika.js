@@ -262,3 +262,85 @@ function limpiarErrores(form) {
     el.classList.remove('show');
   });
 }
+
+/**
+ * Modal de entrada de texto — reemplaza prompt() nativo.
+ * @param {string} mensaje     - Pregunta al usuario
+ * @param {string} placeholder - Texto de ayuda en el input
+ * @returns {Promise<string|null>} Texto ingresado o null si canceló
+ */
+function pedirTexto(mensaje, placeholder = '') {
+  return new Promise((resolve) => {
+    const previo = document.getElementById('kikaPrompt');
+    if (previo) previo.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'kikaPrompt';
+    overlay.style.cssText = `
+      position:fixed;inset:0;z-index:9999;
+      background:rgba(0,0,0,.45);backdrop-filter:blur(2px);
+      display:flex;align-items:center;justify-content:center;
+      animation:fadeIn .15s ease;
+    `;
+
+    overlay.innerHTML = `
+      <div style="
+        background:#fff;border-radius:14px;padding:28px 28px 22px;
+        max-width:380px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,.18);
+        animation:slideUp .18s ease;
+      ">
+        <p style="margin:0 0 14px;font-size:14px;font-weight:600;color:var(--text)">
+          ${mensaje}
+        </p>
+        <input id="kikaPromptInput" type="text" placeholder="${placeholder}"
+          style="width:100%;height:40px;padding:0 12px;border:1.5px solid var(--gray-mid);
+                 border-radius:8px;font-family:inherit;font-size:14px;
+                 background:var(--gray-lt);box-sizing:border-box;">
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+          <button id="kikaPromptCancelar" style="
+            padding:8px 18px;border-radius:8px;border:1.5px solid var(--gray-mid);
+            background:transparent;cursor:pointer;font-size:13px;font-weight:600;
+            color:var(--text-sec);font-family:inherit;
+          ">Cancelar</button>
+          <button id="kikaPromptOk" style="
+            padding:8px 18px;border-radius:8px;border:none;
+            background:var(--teal);color:#fff;cursor:pointer;
+            font-size:13px;font-weight:700;font-family:inherit;
+          ">Aceptar</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const input = overlay.querySelector('#kikaPromptInput');
+    input.focus();
+
+    overlay.querySelector('#kikaPromptOk').addEventListener('click', () => {
+      const val = input.value.trim();
+      overlay.remove();
+      resolve(val || null);
+    });
+    overlay.querySelector('#kikaPromptCancelar').addEventListener('click', () => {
+      overlay.remove();
+      resolve(null);
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const val = input.value.trim();
+        overlay.remove();
+        resolve(val || null);
+      }
+      if (e.key === 'Escape') {
+        overlay.remove();
+        resolve(null);
+      }
+    });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) { overlay.remove(); resolve(null); }
+    });
+  });
+}
+
+window.confirmar  = confirmar;
+window.pedirTexto = pedirTexto;

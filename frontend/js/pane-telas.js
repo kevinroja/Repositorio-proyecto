@@ -49,13 +49,17 @@ function buildPaneTelas() {
     </div>
 
     <!-- Barra de acciones -->
-    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
-      ${edit
-        ? `<button class="btn btn-g" onclick="addTelaRow()">+ Agregar fila</button>
-           <button class="btn btn-o" onclick="clearTelas()">🗑 Limpiar</button>`
-        : '<span class="badge ba">Solo Lectura</span>'}
-      <span class="hint">Edita directo en la celda · Enter/Tab para avanzar</span>
-    </div>
+<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+  ${edit
+    ? `<button class="btn btn-g" onclick="addTelaRow()">+ Agregar fila</button>
+       <button class="btn btn-o" onclick="clearTelas()">🗑 Limpiar</button>
+       <button class="btn btn-g" onclick="guardarTelas()"
+         style="margin-left:auto;background:#1a6b7c">
+         💾 Guardar en BD
+       </button>`
+    : '<span class="badge ba">Solo Lectura</span>'}
+  <span class="hint">Edita directo en la celda · Enter/Tab para avanzar</span>
+</div>
 
     <!-- Grilla estilo Excel: referencias en filas, materiales en columnas -->
     <div class="xgrid-wrap">
@@ -253,8 +257,9 @@ function deleteTelaRow(id) {
 /**
  * Elimina TODAS las filas de tela tras confirmación.
  */
-function clearTelas() {
-  if (!confirm('¿Borrar todas las filas de tela?')) return;
+async function clearTelas() {
+  const ok = await window.parent.confirmar('¿Borrar todas las filas de tela?', 'danger', 'Borrar todo');
+  if (!ok) return;
   TELAS = [];
   renderTelas();
 }
@@ -270,9 +275,10 @@ function clearTelas() {
  */
 function importTelasRows(rows, sheetName, statusEl) {
   let added = 0;
-  rows.forEach(cols => {
+  rows.forEach((cols, index) => {
+    if (index === 0) return; // ← saltar fila de encabezados
     const ref = String(cols[1] || '').trim();
-    if (!ref) return; // Saltar filas sin nombre de referencia
+    if (!ref) return;
 
     // Extraer los 4 materiales
     const m = [0, 1, 2, 3].map(i => ({
@@ -297,13 +303,144 @@ function importTelasRows(rows, sheetName, statusEl) {
     added++;
   });
 
-  addHist(`Importó ${added} telas`, 'Telas', sheetName);
-  buildPaneTelas();
-  if (activeTab === 'telas')
-    goTab('telas', document.getElementById('tab-telas'));
+addHist(`Importó ${added} telas`, 'Telas', sheetName);
+
+  // Reconstruir y renderizar dentro del subpane correcto
+  const sub = document.getElementById('subpane-telas');
+  if (sub) {
+    sub.id = 'pane-telas';
+    buildPaneTelas();
+    sub.id = 'subpane-telas';
+    // renderTelas necesita el tbody que acaba de crear buildPaneTelas
+    // pero ya con el id correcto restaurado, así que lo llamamos apuntando directo
+    const tbody = sub.querySelector('#telas-body');
+    if (tbody) renderTelas();
+  } else {
+    // fallback: no hay subpane, renderizar normal
+    buildPaneTelas();
+  }
+
+  switchSubtab('telas');
+
   if (statusEl) {
     statusEl.textContent = `✓ ${added} referencia(s) importadas`;
     statusEl.style.color = 'var(--g1)';
   }
   toast(`✓ Telas: ${added} referencias cargadas`);
+}
+
+/**
+ * Construye el pane combinado Telas + Insumos con subtabs internos.
+ */
+function buildPaneMateria() {
+  const pane = document.getElementById('pane-materia');
+  if (!pane) return;
+
+  pane.innerHTML = `
+    <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--g3)">
+      <button id="subtab-telas"
+        onclick="switchSubtab('telas')"
+        style="padding:8px 20px;border:none;background:var(--g1);color:var(--bg);
+               font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer;
+               border-radius:6px 6px 0 0;margin-right:4px">
+        📐 Telas & Confección
+      </button>
+      <button id="subtab-insumos"
+        onclick="switchSubtab('insumos')"
+        style="padding:8px 20px;border:none;background:transparent;color:var(--tx2);
+               font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;
+               border-radius:6px 6px 0 0">
+        🪡 Insumos
+      </button>
+    </div>
+    <div id="subpane-telas"></div>
+    <div id="subpane-insumos" style="display:none"></div>
+  `;
+
+  // Redirigir buildPaneTelas y buildPaneInsumos a los subpanes
+  buildSubPaneTelas();
+  buildSubPaneInsumos();
+}
+
+function switchSubtab(which) {
+  const showTelas   = which === 'telas';
+  document.getElementById('subpane-telas').style.display   = showTelas ? '' : 'none';
+  document.getElementById('subpane-insumos').style.display = showTelas ? 'none' : '';
+
+  const btnT = document.getElementById('subtab-telas');
+  const btnI = document.getElementById('subtab-insumos');
+  btnT.style.background = showTelas ? 'var(--g1)' : 'transparent';
+  btnT.style.color      = showTelas ? 'var(--bg)' : 'var(--tx2)';
+  btnI.style.background = showTelas ? 'transparent' : 'var(--g1)';
+  btnI.style.color      = showTelas ? 'var(--tx2)' : 'var(--bg)';
+}
+
+function buildSubPaneTelas() {
+  const sub = document.getElementById('subpane-telas');
+  if (!sub) return;
+  sub.id = 'pane-telas';
+  buildPaneTelas();
+  // NO restaurar el id aquí — renderTelas ya corrió dentro de buildPaneTelas
+  // Restaurar después de que el DOM quedó pintado
+  sub.id = 'subpane-telas';
+}
+
+function buildSubPaneInsumos() {
+  const sub = document.getElementById('subpane-insumos');
+  if (!sub) return;
+  sub.id = 'pane-insumos';
+  buildPaneInsumos();
+  sub.id = 'subpane-insumos';
+}
+
+async function guardarTelas() {
+  if (!TELAS.length) { toast('⚠ No hay datos para guardar', 'error'); return; }
+
+  const API   = window.parent?.API_URL || 'http://localhost:3000/api';
+  const token = window.parent?.kikaToken || sessionStorage.getItem('kika_token');
+  const fijosTotal = calcTtlFijos();
+
+  let ok = 0, err = 0;
+  for (const row of TELAS) {
+    const colObj = COLECCIONES.find(c => c.name === row.col);
+    const materiales = row.m
+      .filter(m => m.mat)
+      .map(m => ({ Nombre: m.mat, Mts: +m.mts || 0, Precio: +m.precio || 0 }));
+
+    const insRow = INSUMOS.find(i => i.ref === row.ref);
+    const insumos = insRow
+      ? insRow.ins.filter(i => i.name).map(i => ({
+          name: i.name, cant: +i.cant || 0, precio: +i.precio || 0
+        }))
+      : [];
+
+    try {
+      const res = await fetch(`${API}/prendas/guardar`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          ref:        row.ref,
+          colId:      colObj?.id || null,
+          taller:     +row.taller || 0,
+          ttlMat:     calcTtlMat(row),
+          ttlInsVar:  insRow ? calcTtlVar(insRow) : 0,
+          ttlInsFijos: fijosTotal,
+          costoTotal: calcTtlMat(row) + (insRow ? calcTtlVar(insRow) : 0) + fijosTotal,
+          materiales,
+          insumos
+        })
+      });
+      const json = await res.json();
+      if (json.ok) ok++; else err++;
+    } catch { err++; }
+  }
+
+  // Guardar insumos fijos también
+  await fetch(`${API}/prendas/insumos-fijos`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ fijos: FIJOS })
+  });
+
+  toast(err ? `⚠ ${ok} guardadas, ${err} con error` : `✓ ${ok} prendas guardadas en BD`);
 }

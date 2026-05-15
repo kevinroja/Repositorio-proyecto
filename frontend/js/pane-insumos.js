@@ -261,8 +261,7 @@ function syncInsRefs() {
 function renderInsumos() {
   const tbody = document.getElementById('insumos-body');
   if (!tbody) return;
-  const edit        = canEdit('insumos');
-  const fijosTotal  = calcTtlFijos();
+const edit = canEdit('insumos');
 
   if (!INSUMOS.length) {
     tbody.innerHTML = `<tr><td colspan="43"
@@ -307,7 +306,7 @@ function renderInsumos() {
         <!-- Total variables (calculado) -->
         <td class="ttl num ro"><span class="cell-ro">$${fmt(ttlVar)}</span></td>
         <!-- Total fijos (igual para todas las referencias) -->
-        <td class="grn num ro"><span class="cell-ro">$${fmt(fijosTotal)}</span></td>
+        <td class="grn num ro"><span class="cell-ro">$${fmt(calcTtlFijos())}</span></td>
         <td>${edit
           ? `<button class="btn-del" onclick="deleteInsRow('${row.id}')">✕</button>`
           : ''}
@@ -354,17 +353,18 @@ function deleteInsRow(id) {
  */
 function importInsumosRows(rows, sheetName, statusEl) {
   let added = 0;
-  rows.forEach(cols => {
-    const ref = String(cols[0] || '').trim();
+  rows.forEach((cols, index) => {
+    if (index === 0) return; // ← saltar fila de encabezados
+const ref = String(cols[1] || '').trim();
     if (!ref) return;
 
     // Extraer los 10 insumos variables
-    const ins = [0,1,2,3,4,5,6,7,8,9].map(i => ({
-      name:   String(cols[1 + i * 4] || '').trim(),
-      prov:   String(cols[2 + i * 4] || '').trim(),
-      cant:   cleanNum(cols[3 + i * 4]),
-      precio: cleanNum(cols[4 + i * 4])
-    }));
+const ins = [0,1,2,3,4,5,6,7,8,9].map(i => ({
+  name:   String(cols[2 + i * 4] || '').trim(),
+  prov:   String(cols[3 + i * 4] || '').trim(),
+  cant:   cleanNum(cols[4 + i * 4]),
+  precio: cleanNum(cols[5 + i * 4])
+}));
 
     if (!ins.some(x => x.name)) return;
 
@@ -375,13 +375,30 @@ function importInsumosRows(rows, sheetName, statusEl) {
     added++;
   });
 
-  addHist(`Importó ${added} insumos`, 'Insumos', sheetName);
-  buildPaneInsumos();
-  if (activeTab === 'insumos')
-    goTab('insumos', document.getElementById('tab-insumos'));
+addHist(`Importó ${added} insumos`, 'Insumos', sheetName);
+
+  const sub = document.getElementById('subpane-insumos');
+  if (sub) {
+    sub.id = 'pane-insumos';
+    buildPaneInsumos();
+    sub.id = 'subpane-insumos';
+    const tbody = sub.querySelector('#insumos-body');
+    if (tbody) renderInsumos();
+  } else {
+    buildPaneInsumos();
+  }
+
+  switchSubtab('insumos');
+
   if (statusEl) {
     statusEl.textContent = `✓ ${added} referencia(s) importadas`;
     statusEl.style.color = 'var(--g1)';
   }
   toast(`✓ Insumos: ${added} referencias cargadas`);
+
+  // Re-renderizar después de que importFijosRows termine de cargar FIJOS
+  setTimeout(() => {
+    renderInsumos();
+    renderFijosSummary();
+  }, 50);
 }

@@ -106,77 +106,71 @@
   </div>
 
   <script src="../../js/kika.js"></script>
-  <script>
-    const sesion = requireAuth([1, 2, 3, 4]);
+<script>
+  const sesion = requireAuth([1, 2, 3, 4]);
 
-    document.getElementById('nombreUsuario').textContent = sesion.usuario.Nombre;
-    document.getElementById('rolUsuario').textContent    = ROLES[sesion.rol] || '';
+  document.getElementById('nombreUsuario').textContent = sesion.usuario.Nombre;
+  document.getElementById('rolUsuario').textContent    = ROLES[sesion.rol] || '';
 
-    const rol        = sesion.rol;
-    const dropCosteo = document.getElementById('dropCosteo');
+  const rol        = sesion.rol;
+  const dropCosteo = document.getElementById('dropCosteo');
 
-    if (rol === 4) {
-      dropCosteo.innerHTML = `
-        <a href="#" onclick="cargar('../producto/producto.html?tab=telas',this)">
-          <i class="ri-ruler-line"></i> Telas & Confección
-        </a>
-        <a href="#" onclick="cargar('../producto/producto.html?tab=insumos',this)">
-          <i class="ri-scissors-line"></i> Insumos
-        </a>
-        <a href="#" onclick="cargar('../producto/producto.html?tab=consolidado',this)">
-          <i class="ri-bar-chart-line"></i> Consolidado
-        </a>
-        <a href="#" onclick="cargar('../producto/producto.html?tab=canales',this)">
-          <i class="ri-store-line"></i> Canal de Venta
-        </a>`;
-      document.getElementById('secUsuarios').style.display    = 'flex';
-      document.getElementById('secCosteo').style.display      = 'flex';
-      document.getElementById('liSoporteAdmin').style.display = 'block';
-      document.getElementById('labelCosteo').textContent      = 'Administrador';
-    }
+  if (rol === 4) {
+    dropCosteo.innerHTML = `
+      <a href="#" onclick="cargar('../producto/producto.html?tab=materia',this)">
+        <i class="ri-ruler-line"></i> Telas & Insumos
+      </a>
+      <a href="#" onclick="cargar('../producto/producto.html?tab=consolidado',this)">
+        <i class="ri-bar-chart-line"></i> Consolidado
+      </a>
+      <a href="#" onclick="cargar('../producto/producto.html?tab=canales',this)">
+        <i class="ri-store-line"></i> Canal de Venta
+      </a>`;
+    document.getElementById('secUsuarios').style.display    = 'flex';
+    document.getElementById('secCosteo').style.display      = 'flex';
+    document.getElementById('liSoporteAdmin').style.display = 'block';
+    document.getElementById('labelCosteo').textContent      = 'Administrador';
+  }
 
-    if (rol === 1) {
-      dropCosteo.innerHTML = `
-        <a href="#" onclick="cargar('../producto/producto.html?tab=telas',this)">
-          <i class="ri-ruler-line"></i> Telas & Confección
-        </a>
-        <a href="#" onclick="cargar('../producto/producto.html?tab=insumos',this)">
-          <i class="ri-scissors-line"></i> Insumos
-        </a>`;
-      document.getElementById('secCosteo').style.display = 'flex';
-      document.getElementById('labelCosteo').textContent = 'Materia Prima';
-    }
+  if (rol === 1) {
+    dropCosteo.innerHTML = `
+      <a href="#" onclick="cargar('../producto/producto.html?tab=materia',this)">
+        <i class="ri-ruler-line"></i> Telas & Insumos
+      </a>`;
+    document.getElementById('secCosteo').style.display = 'flex';
+    document.getElementById('labelCosteo').textContent = 'Materia Prima';
+  }
 
-    if (rol === 2) {
-      dropCosteo.innerHTML = `
-        <a href="#" onclick="cargar('../producto/producto.html?tab=consolidado',this)">
-          <i class="ri-bar-chart-line"></i> Consolidado
-        </a>
-        <a href="#" onclick="cargar('../producto/producto.html?tab=canales',this)">
-          <i class="ri-store-line"></i> Canal de Venta
-        </a>`;
-      document.getElementById('secCosteo').style.display = 'flex';
-      document.getElementById('labelCosteo').textContent = 'Costeo';
-    }
+  if (rol === 2) {
+    dropCosteo.innerHTML = `
+      <a href="#" onclick="cargar('../producto/producto.html?tab=consolidado',this)">
+        <i class="ri-bar-chart-line"></i> Consolidado
+      </a>
+      <a href="#" onclick="cargar('../producto/producto.html?tab=canales',this)">
+        <i class="ri-store-line"></i> Canal de Venta
+      </a>`;
+    document.getElementById('secCosteo').style.display = 'flex';
+    document.getElementById('labelCosteo').textContent = 'Costeo';
+  }
 
-    window.kikaToken   = sesion.token;
-    window.kikaUsuario = sesion.usuario;
-    window.kikaRol     = parseInt(sesion.rol);
+  window.kikaToken   = sesion.token;
+  window.kikaUsuario = sesion.usuario;
+  window.kikaRol     = parseInt(sesion.rol);
 
-    function cargar(pagina, enlace) {
-      document.getElementById('frame').src = pagina;
-      document.querySelectorAll('.tn-dropdown a, .tn-btn')
-        .forEach(a => a.classList.remove('active'));
-      if (enlace) enlace.classList.add('active');
-    }
+  function cargar(pagina, enlace) {
+    document.getElementById('frame').src = pagina;
+    document.querySelectorAll('.tn-dropdown a, .tn-btn')
+      .forEach(a => a.classList.remove('active'));
+    if (enlace) enlace.classList.add('active');
+  }
 
-    document.getElementById('btnSalir').addEventListener('click', async () => {
-      const ok = await confirmar('¿Deseas cerrar la sesión?', 'warning', 'Salir');
-      if (!ok) return;
-      sessionStorage.clear();
-      window.location.href = '../../index.html';
-    });
-  </script>
+  document.getElementById('btnSalir').addEventListener('click', async () => {
+    const ok = await confirmar('¿Deseas cerrar la sesión?', 'warning', 'Salir');
+    if (!ok) return;
+    sessionStorage.clear();
+    window.location.href = '../../index.html';
+  });
+</script>
 
 </body>
 </html>

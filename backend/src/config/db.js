@@ -24,6 +24,11 @@ class Database {
         const [result] = await this.pool.execute(sql, params);
         return result;
     }
+
+    // Obtiene una conexión del pool (necesaria para transacciones)
+    async getConnection() {
+        return await this.pool.getConnection();
+    }
 }
 
 // Singleton — una sola instancia en toda la app
