@@ -4,34 +4,45 @@
   <meta charset="UTF-8">
   <title>Kika — Panel</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Íconos y fuentes -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <!-- Estilos generales y estilos del marco (shell) -->
   <link rel="stylesheet" href="../../css/kika.css">
   <link rel="stylesheet" href="../../css/shell.css">
 </head>
 
+<!-- ── PANTALLA PRINCIPAL (SHELL) ──────────────────────────────
+     Esta página es el "marco" de toda la aplicación.
+     No muestra contenido propio: tiene una barra de navegación arriba
+     y un iframe que carga los diferentes módulos abajo.
+     El usuario nunca sale de esta página; solo cambia lo que hay en el iframe. -->
 <body class="page-shell">
 
-  <!-- NAVBAR -->
+  <!-- ── BARRA DE NAVEGACIÓN SUPERIOR ──────────────────────────
+       Contiene el logo, el menú de secciones y los datos del usuario. -->
   <div class="navbar">
+    <!-- Logo de la empresa (intenta cargar el blanco; si no existe, carga el negro) -->
     <img src="../../img/LOGO BLANCO.png" alt="Kika" class="logo"
          onerror="this.src='../../img/LOGO NEGRO.png'">
 
     <nav class="topnav">
 
-      <!-- Colecciones: directo, todos -->
+      <!-- ── Colecciones: visible para todos los roles ── -->
       <div class="tn-group">
         <button class="tn-btn" onclick="cargar('../producto/producto.html?tab=colecciones',this)">
           <i class="ri-folder-line"></i> Colecciones
         </button>
       </div>
 
-      <!-- Usuarios: solo Admin (rol 4) -->
+      <!-- ── Usuarios: solo visible para el Administrador (rol 4) ──
+           Por defecto está oculto; se muestra desde JavaScript si el rol es 4. -->
       <div class="tn-group" id="secUsuarios" style="display:none">
         <button class="tn-btn">
           <i class="ri-user-settings-line"></i> Usuarios
           <i class="ri-arrow-down-s-line"></i>
         </button>
+        <!-- Menú desplegable con las opciones de gestión de usuarios -->
         <div class="tn-dropdown">
           <a href="#" onclick="cargar('../auth/Creacion_Usuario.html',this)">
             <i class="ri-user-add-line"></i> Crear Usuario
@@ -45,26 +56,32 @@
         </div>
       </div>
 
-      <!-- Costeo: roles 4, 1, 2 -->
+      <!-- ── Costeo: visible para roles 1, 2 y 4 ──────────────────
+           El contenido del menú y la etiqueta cambian según el rol.
+           Por defecto oculto; se configura en JavaScript. -->
       <div class="tn-group" id="secCosteo" style="display:none">
         <button class="tn-btn">
           <i class="ri-calculator-line"></i>
+          <!-- El texto del botón cambia: "Administrador", "Materia Prima" o "Costeo" -->
           <span id="labelCosteo">Costeo</span>
           <i class="ri-arrow-down-s-line"></i>
         </button>
+        <!-- Las opciones del dropdown se generan dinámicamente según el rol -->
         <div class="tn-dropdown" id="dropCosteo"></div>
       </div>
 
-      <!-- Soporte: todos -->
+      <!-- ── Soporte: visible para todos los roles ──────────────── -->
       <div class="tn-group">
         <button class="tn-btn">
           <i class="ri-customer-service-2-line"></i> Soporte
           <i class="ri-arrow-down-s-line"></i>
         </button>
         <div class="tn-dropdown">
+          <!-- Opción visible para todos: reportar un problema -->
           <a href="#" onclick="cargar('../soporte/Soporte.html',this)">
             <i class="ri-tools-line"></i> Soporte Técnico
           </a>
+          <!-- Opción solo para Administrador: ver todos los tickets -->
           <a href="#" id="liSoporteAdmin" style="display:none"
              onclick="cargar('../soporte/Soporte_Admin.html',this)">
             <i class="ri-list-check"></i> Gestión de Tickets
@@ -72,14 +89,14 @@
         </div>
       </div>
 
-      <!-- Consulta: directo, todos -->
+      <!-- ── Consulta: visible para todos los roles ── -->
       <div class="tn-group">
         <button class="tn-btn" onclick="cargar('../producto/producto.html?tab=consulta',this)">
           <i class="ri-search-line"></i> Consulta
         </button>
       </div>
 
-      <!-- Historial: directo, todos -->
+      <!-- ── Historial: visible para todos los roles ── -->
       <div class="tn-group">
         <button class="tn-btn" onclick="cargar('../producto/producto.html?tab=historial',this)">
           <i class="ri-history-line"></i> Historial
@@ -88,34 +105,45 @@
 
     </nav>
 
+    <!-- ── Lado derecho de la barra: nombre del usuario y botón salir ── -->
     <div class="navbar-right">
       <div class="user-badge">
         <i class="ri-user-line"></i>
-        <span id="nombreUsuario">—</span>
-        <span id="rolUsuario" style="opacity:.6;font-size:11px;margin-left:4px"></span>
+        <span id="nombreUsuario">—</span>  <!-- Se rellena con el nombre real desde JS -->
+        <span id="rolUsuario" style="opacity:.6;font-size:11px;margin-left:4px"></span> <!-- Ej: "Administrador" -->
       </div>
+      <!-- Botón para cerrar sesión -->
       <button class="btn-logout" id="btnSalir">
         <i class="ri-logout-box-line"></i> Salir
       </button>
     </div>
   </div>
 
-  <!-- CONTENIDO -->
+  <!-- ── ÁREA DE CONTENIDO ─────────────────────────────────────────
+       El iframe carga la página del módulo seleccionado.
+       Por defecto abre la pantalla de Colecciones. -->
   <div class="content-full">
     <iframe id="frame" src="../producto/producto.html?tab=colecciones"></iframe>
   </div>
 
+  <!-- Funciones globales compartidas (toast, requireAuth, confirmar, etc.) -->
   <script src="../../js/kika.js"></script>
 <script>
+  // ── Seguridad: verifica que el usuario esté autenticado y tenga un rol válido (1-4) ──
+  // Si no hay sesión, redirige al login automáticamente
   const sesion = requireAuth([1, 2, 3, 4]);
 
+  // Muestra el nombre y rol del usuario en la barra superior
   document.getElementById('nombreUsuario').textContent = sesion.usuario.Nombre;
   document.getElementById('rolUsuario').textContent    = ROLES[sesion.rol] || '';
 
   const rol        = sesion.rol;
   const dropCosteo = document.getElementById('dropCosteo');
 
+  // ── Configura los menús según el rol del usuario ─────────────
+
   if (rol === 4) {
+    // ADMINISTRADOR: ve todo (telas, consolidado, canales de venta)
     dropCosteo.innerHTML = `
       <a href="#" onclick="cargar('../producto/producto.html?tab=materia',this)">
         <i class="ri-ruler-line"></i> Telas & Insumos
@@ -126,13 +154,14 @@
       <a href="#" onclick="cargar('../producto/producto.html?tab=canales',this)">
         <i class="ri-store-line"></i> Canal de Venta
       </a>`;
-    document.getElementById('secUsuarios').style.display    = 'flex';
-    document.getElementById('secCosteo').style.display      = 'flex';
-    document.getElementById('liSoporteAdmin').style.display = 'block';
+    document.getElementById('secUsuarios').style.display    = 'flex';  // Muestra menú Usuarios
+    document.getElementById('secCosteo').style.display      = 'flex';  // Muestra menú Costeo
+    document.getElementById('liSoporteAdmin').style.display = 'block'; // Muestra opción Gestión Tickets
     document.getElementById('labelCosteo').textContent      = 'Administrador';
   }
 
   if (rol === 1) {
+    // MATERIA PRIMA: solo accede a Telas & Insumos
     dropCosteo.innerHTML = `
       <a href="#" onclick="cargar('../producto/producto.html?tab=materia',this)">
         <i class="ri-ruler-line"></i> Telas & Insumos
@@ -142,6 +171,7 @@
   }
 
   if (rol === 2) {
+    // COSTEO: accede a Consolidado y Canales de Venta
     dropCosteo.innerHTML = `
       <a href="#" onclick="cargar('../producto/producto.html?tab=consolidado',this)">
         <i class="ri-bar-chart-line"></i> Consolidado
@@ -153,22 +183,29 @@
     document.getElementById('labelCosteo').textContent = 'Costeo';
   }
 
+  // ── Expone los datos de sesión para que los iframes hijos los lean ──
+  // Los módulos cargados en el iframe acceden a estos valores con window.parent.kikaToken
   window.kikaToken   = sesion.token;
   window.kikaUsuario = sesion.usuario;
   window.kikaRol     = parseInt(sesion.rol);
 
+  // ── Cambia la página mostrada en el iframe ────────────────────
+  // "pagina" es la ruta relativa del archivo HTML a cargar
+  // "enlace" es el elemento del menú que se clickeó (para marcarlo como activo)
   function cargar(pagina, enlace) {
     document.getElementById('frame').src = pagina;
+    // Quita el estilo activo de todos los enlaces y lo pone solo en el clickeado
     document.querySelectorAll('.tn-dropdown a, .tn-btn')
       .forEach(a => a.classList.remove('active'));
     if (enlace) enlace.classList.add('active');
   }
 
+  // ── Botón "Salir": pide confirmación y cierra la sesión ───────
   document.getElementById('btnSalir').addEventListener('click', async () => {
     const ok = await confirmar('¿Deseas cerrar la sesión?', 'warning', 'Salir');
     if (!ok) return;
-    sessionStorage.clear();
-    window.location.href = '../../index.html';
+    sessionStorage.clear(); // Borra todos los datos de sesión del navegador
+    window.location.href = '../../index.html'; // Redirige al login
   });
 </script>
 

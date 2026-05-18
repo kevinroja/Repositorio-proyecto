@@ -4,12 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bloquear / Desbloquear Usuario</title>
+  <!-- Íconos y fuentes -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <!-- Estilos generales de la app -->
   <link rel="stylesheet" href="../../css/kika.css">
 </head>
 <body class="page-user-form">
 
+<!-- ── TARJETA BLOQUEAR / DESBLOQUEAR ──────────────────────────
+     Solo el Administrador puede acceder.
+     Muestra la lista de todos los usuarios con un botón para
+     bloquear a los activos o desbloquear a los bloqueados. -->
 <div class="user-card" style="max-width:520px">
   <div class="user-card-header">
     <i class="ri-user-forbid-line" style="font-size:18px"></i>
@@ -17,12 +23,15 @@
   </div>
   <div class="user-card-body">
 
-    <!-- Buscador en tiempo real -->
+    <!-- ── BUSCADOR EN TIEMPO REAL ────────────────────────────────
+         Filtra la lista que ya está cargada sin hacer nuevas
+         llamadas al servidor. El botón de recarga sí llama a la API. -->
     <div style="margin-bottom:16px">
       <div class="field-label">Buscar usuario</div>
       <div style="display:flex;gap:8px">
         <input class="field-input" id="buscar" type="text"
                placeholder="Nombre o correo" style="flex:1" oninput="filtrar()">
+        <!-- Botón para recargar la lista completa desde el servidor -->
         <button type="button" class="btn btn-cancel" style="height:40px;padding:0 14px"
                 onclick="cargarUsuarios()" title="Recargar lista">
           <i class="ri-refresh-line"></i>
@@ -30,25 +39,30 @@
       </div>
     </div>
 
+    <!-- Spinner mientras se cargan los usuarios -->
     <div id="estadoCarga" style="text-align:center;padding:24px;font-size:13px;color:var(--text-sec)">
       <i class="ri-loader-4-line"></i> Cargando usuarios...
     </div>
 
+    <!-- Aquí se insertan las filas de usuarios desde JavaScript -->
     <div id="listaUsuarios" style="display:none"></div>
 
   </div>
 </div>
 
+<!-- Contenedor de notificaciones emergentes (toasts) -->
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- Funciones globales compartidas -->
 <script src="../../js/kika.js"></script>
 <script>
-  /* Guard: solo admins */
+  // ── Seguridad: solo el Administrador (rol 4) puede abrir esta pantalla ──
   requireAuth([4]);
 
-  /** Caché local de usuarios para el filtrado sin llamadas extra */
+  // Guarda en memoria la lista completa para poder filtrar sin llamar a la API
   let todosLosUsuarios = [];
 
-  /* ── Carga la lista de usuarios desde la API ── */
+  // ── Carga la lista de usuarios desde el servidor ─────────────
   async function cargarUsuarios() {
     document.getElementById('estadoCarga').style.display = 'block';
     document.getElementById('estadoCarga').innerHTML = '<i class="ri-loader-4-line"></i> Cargando...';
@@ -61,7 +75,7 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      todosLosUsuarios = data.data;
+      todosLosUsuarios = data.data; // Guarda los usuarios para el filtrado local
       renderizar(todosLosUsuarios);
 
     } catch (err) {
@@ -70,8 +84,9 @@
     }
   }
 
-  /* ── Renderiza el listado de usuarios ────────
-     Aplica estilos según el estado activo/bloqueado */
+  // ── Dibuja la lista de usuarios en pantalla ───────────────────
+  // Los usuarios activos tienen botón rojo "Bloquear"
+  // Los usuarios bloqueados tienen botón verde "Desbloquear" y aparecen con opacidad reducida
   function renderizar(usuarios) {
     const lista = document.getElementById('listaUsuarios');
     lista.innerHTML = '';
@@ -80,11 +95,12 @@
       lista.innerHTML = '<p style="text-align:center;color:var(--text-sec);font-size:13px;padding:16px">No se encontraron usuarios</p>';
     } else {
       usuarios.forEach(u => {
-        const activo = u.Activo === 1;
+        const activo = u.Activo === 1; // 1 = activo, 0 = bloqueado
         const div = document.createElement('div');
         div.className = 'ticket';
         div.style.cssText = `display:flex;align-items:center;justify-content:space-between;
           gap:12px;margin-bottom:8px;${activo ? '' : 'opacity:.65;border-left-color:var(--red)'}`;
+          // Si está bloqueado: baja la opacidad y marca el borde en rojo
 
         div.innerHTML = `
           <div style="flex:1;min-width:0">
@@ -92,11 +108,13 @@
             <div style="font-size:11px;color:var(--text-sec);margin-top:1px">
               ${u.Email} · ${ROLES[u.ROL_idROL] || '—'}
             </div>
+            <!-- Indicador de estado: verde "Activo" o rojo "Bloqueado" -->
             <div style="font-size:11px;font-weight:600;margin-top:3px;
               color:${activo ? 'var(--teal)' : 'var(--red)'}">
               ${activo ? '● Activo' : '● Bloqueado'}
             </div>
           </div>
+          <!-- Botón: rojo si está activo (para bloquear), verde si está bloqueado (para desbloquear) -->
           <button class="btn ${activo ? 'btn-danger' : 'btn-primary'}"
             style="padding:6px 14px;font-size:12px;flex-shrink:0;
               ${activo ? '' : 'background:var(--teal)'}"
@@ -113,7 +131,8 @@
     lista.style.display = 'block';
   }
 
-  /* ── Filtra la lista local sin llamar a la API ── */
+  // ── Filtra la lista local sin llamar a la API ─────────────────
+  // Compara el texto del buscador contra el nombre y correo de cada usuario
   function filtrar() {
     const val = document.getElementById('buscar').value.trim().toLowerCase();
     renderizar(!val
@@ -125,23 +144,26 @@
     );
   }
 
-  /* ── Bloquea o desbloquea un usuario ─────────
-     Usa confirmar() de kika.js en lugar de confirm() nativo */
+  // ── Bloquea o desbloquea un usuario ──────────────────────────
+  // Primero muestra un cuadro de confirmación; si el admin confirma, llama a la API
   async function toggleBloqueo(id, estaActivo, btn) {
     const accion = estaActivo ? 'bloquear' : 'desbloquear';
     const label  = estaActivo ? 'Bloquear' : 'Desbloquear';
 
+    // Pide confirmación con el modal de kika.js (no el confirm() nativo del navegador)
     const ok = await confirmar(
       `¿Confirmas que deseas <strong>${accion}</strong> a este usuario?`,
       estaActivo ? 'danger' : 'info',
       label
     );
-    if (!ok) return;
+    if (!ok) return; // El admin canceló, no hace nada
 
+    // Desactiva el botón mientras espera la respuesta del servidor
     btn.disabled = true;
     btn.innerHTML = '<i class="ri-loader-4-line"></i>';
 
     try {
+      // ── Llama a la API: PUT /usuarios/:id/bloquear  o  PUT /usuarios/:id/desbloquear ──
       const res = await fetch(`${API_URL}/usuarios/${id}/${accion}`, {
         method:  'PUT',
         headers: { 'Authorization': `Bearer ${getToken()}` }
@@ -149,19 +171,20 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
+      // Notificación y recarga de la lista para mostrar el estado actualizado
       toast(
         `Usuario ${estaActivo ? 'bloqueado' : 'desbloqueado'} correctamente`,
         estaActivo ? 'error' : 'success'
       );
-      await cargarUsuarios(); // Recarga la lista actualizada
+      await cargarUsuarios();
 
     } catch (err) {
       toast('Error: ' + err.message, 'error');
-      btn.disabled = false;
+      btn.disabled = false; // Reactiva el botón si hubo error
     }
   }
 
-  /* Cargar lista al abrir la página */
+  // Carga la lista de usuarios al abrir la pantalla
   cargarUsuarios();
 </script>
 </body>

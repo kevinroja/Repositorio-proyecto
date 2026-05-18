@@ -50,7 +50,7 @@ class ColeccionController {
         }
     }
 
-    // DELETE /api/colecciones/:id
+   // DELETE /api/colecciones/:id
     static async eliminar(req, res) {
         try {
             await ColeccionService.eliminar(req.params.id, req.usuario.id);
@@ -60,6 +60,16 @@ class ColeccionController {
             });
         } catch (err) {
             return res.status(400).json({ ok: false, message: err.message });
+        }
+    }
+
+    // GET /api/colecciones/:id/prendas
+    static async getPrendas(req, res) {
+        try {
+            const data = await ColeccionService.getPrendas(req.params.id);
+            return res.status(200).json({ ok: true, data });
+        } catch (err) {
+            return res.status(404).json({ ok: false, message: err.message });
         }
     }
 }

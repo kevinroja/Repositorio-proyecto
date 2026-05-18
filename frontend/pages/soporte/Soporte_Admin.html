@@ -4,9 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestión de Soporte</title>
+  <!-- Íconos -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <!-- Estilos generales de la app -->
   <link rel="stylesheet" href="../../css/kika.css">
   <style>
+    /* ── Tarjeta de cada ticket ──────────────────────────────── */
     .ticket-card {
       background: var(--white);
       border: 1.5px solid var(--gray-mid);
@@ -15,7 +18,10 @@
       margin-bottom: 10px;
       transition: var(--tr);
     }
+    /* Resalta la tarjeta al pasar el cursor */
     .ticket-card:hover { border-color: var(--teal); box-shadow: 0 2px 12px rgba(26,107,124,.08); }
+
+    /* Parte superior de la tarjeta: título a la izquierda, badges a la derecha */
     .ticket-header {
       display: flex; align-items: flex-start;
       justify-content: space-between; gap: 12px; margin-bottom: 8px;
@@ -23,21 +29,23 @@
     .ticket-asunto { font-weight: 700; font-size: 14px; color: var(--navy); }
     .ticket-meta   { font-size: 11px; color: var(--text-sec); margin-top: 2px; line-height: 1.8; }
     .ticket-desc   { font-size: 13px; color: var(--text); margin: 8px 0 12px; line-height: 1.6; }
+
+    /* Pie de tarjeta: selector de estado + botón guardar */
     .ticket-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 
-    /* Badges de prioridad */
+    /* ── Badges de prioridad (colores por nivel) ─────────────── */
     .badge { display: inline-flex; align-items: center; gap: 4px;
              padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-    .badge-alta    { background: #ffeaea; color: var(--red); }
-    .badge-media   { background: #fff8e1; color: #c87e00; }
-    .badge-baja    { background: var(--teal-bg); color: var(--teal); }
+    .badge-alta    { background: #ffeaea; color: var(--red); }    /* Rojo para Alta */
+    .badge-media   { background: #fff8e1; color: #c87e00; }       /* Amarillo para Media */
+    .badge-baja    { background: var(--teal-bg); color: var(--teal); } /* Verde para Baja */
 
-    /* Badges de estado */
-    .badge-pendiente   { background: #fff8e1; color: #c87e00; }
-    .badge-en-proceso  { background: #e6f4f7; color: var(--teal); }
-    .badge-resuelto    { background: #eafaf1; color: var(--green); }
+    /* ── Badges de estado del ticket ────────────────────────── */
+    .badge-pendiente   { background: #fff8e1; color: #c87e00; }   /* Amarillo */
+    .badge-en-proceso  { background: #e6f4f7; color: var(--teal); } /* Azul */
+    .badge-resuelto    { background: #eafaf1; color: var(--green); } /* Verde */
 
-    /* Select de estado */
+    /* Select para cambiar el estado del ticket */
     .estado-select {
       height: 34px; padding: 0 10px; border: 1.5px solid var(--gray-mid);
       border-radius: 8px; font-family: 'DM Sans', sans-serif;
@@ -46,6 +54,7 @@
     }
     .estado-select:focus { outline: none; border-color: var(--teal); }
 
+    /* Botón "Guardar" dentro de cada tarjeta */
     .btn-resolver {
       height: 34px; padding: 0 14px; border: none; border-radius: 8px;
       background: var(--teal); color: white; font-family: 'DM Sans', sans-serif;
@@ -55,22 +64,26 @@
     .btn-resolver:hover { background: var(--teal-lt); }
     .btn-resolver:disabled { opacity: .5; cursor: not-allowed; }
 
+    /* Estado vacío cuando no hay tickets que mostrar */
     .empty-state {
       text-align: center; padding: 48px 20px;
       color: var(--text-sec); font-size: 13px;
     }
     .empty-state i { font-size: 40px; display: block; margin-bottom: 12px; color: var(--gray-mid); }
 
+    /* Botones de filtro: Todos / Pendientes / En proceso */
     .filtros { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
     .filtro-btn {
       padding: 6px 14px; border: 1.5px solid var(--gray-mid); border-radius: 20px;
       background: var(--gray-lt); font-family: 'DM Sans', sans-serif;
       font-size: 12px; font-weight: 600; color: var(--text-sec); cursor: pointer; transition: var(--tr);
     }
+    /* Botón activo se pone en color teal */
     .filtro-btn:hover, .filtro-btn.active {
       border-color: var(--teal); background: var(--teal); color: white;
     }
 
+    /* Texto pequeño que muestra el total de solicitudes */
     .contador {
       font-size: 11px; color: var(--text-sec); margin-bottom: 12px;
     }
@@ -79,9 +92,13 @@
 </head>
 <body class="page-form">
 
+<!-- ── PANEL ADMINISTRADOR DE TICKETS ──────────────────────────
+     Solo visible para el Administrador (rol 4).
+     Muestra todos los tickets de todos los usuarios y permite cambiar su estado. -->
 <div class="form-card" style="max-width:720px">
   <div class="form-card-header">
     <h2><i class="ri-customer-service-2-line"></i> Solicitudes de Soporte</h2>
+    <!-- Botón para recargar la lista manualmente -->
     <button class="btn btn-secondary" style="padding:6px 14px;font-size:12px" onclick="cargarTickets()">
       <i class="ri-refresh-line"></i> Actualizar
     </button>
@@ -89,7 +106,9 @@
 
   <div class="form-card-body">
 
-    <!-- Filtros -->
+    <!-- ── BOTONES DE FILTRO ─────────────────────────────────────
+         Permiten ver solo los tickets Pendientes o En proceso,
+         sin necesidad de recargar desde la API (el filtro es local). -->
     <div class="filtros">
       <button class="filtro-btn active" onclick="filtrar('Todos', this)">Todos</button>
       <button class="filtro-btn" onclick="filtrar('Pendiente', this)">
@@ -100,32 +119,43 @@
       </button>
     </div>
 
-    <!-- Contador -->
+    <!-- Línea de conteo: "X solicitudes en total · Y pendientes" -->
     <div class="contador" id="contador"></div>
 
-    <!-- Estado de carga -->
+    <!-- Spinner de carga mientras se obtienen los datos de la API -->
     <div id="estadoCarga" style="text-align:center;padding:30px;font-size:13px;color:var(--text-sec)">
       <i class="ri-loader-4-line"></i> Cargando solicitudes...
     </div>
 
-    <!-- Lista de tickets -->
+    <!-- Aquí se insertan las tarjetas de tickets desde JavaScript -->
     <div id="listaTickets"></div>
 
   </div>
 </div>
 
+<!-- Contenedor de notificaciones emergentes (toasts) -->
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- Funciones globales compartidas -->
 <script src="../../js/kika.js"></script>
 <script>
+  // Dirección base de la API
   const API_URL = 'http://localhost:3000/api';
-  let todosLosTickets = [];
-  let filtroActivo    = 'Todos';
 
+  // Guarda todos los tickets cargados para poder filtrar localmente sin volver a llamar a la API
+  let todosLosTickets = [];
+
+  // Filtro activo en este momento (por defecto muestra todos)
+  let filtroActivo = 'Todos';
+
+  // ── Obtiene el token de sesión ────────────────────────────────
+  // Lo busca primero en la ventana padre (shell) y si no en sessionStorage
   function getToken() {
     return window.parent?.kikaToken || sessionStorage.getItem('kika_token');
   }
 
-  // ── Cargar todos los tickets ───────────────────────────
+  // ── Carga todos los tickets desde la API ─────────────────────
+  // Muestra el spinner, limpia la lista y luego llena con los datos recibidos
   async function cargarTickets() {
     document.getElementById('estadoCarga').style.display = 'block';
     document.getElementById('listaTickets').innerHTML    = '';
@@ -139,15 +169,17 @@
       if (!res.ok) throw new Error(data.message);
 
       todosLosTickets = data.data;
-      aplicarFiltro();
+      aplicarFiltro(); // Dibuja la lista con el filtro activo
 
     } catch (err) {
+      // Si hay error muestra el mensaje en lugar del spinner
       document.getElementById('estadoCarga').innerHTML =
         `<i class="ri-error-warning-line"></i> Error al cargar: ${err.message}`;
     }
   }
 
-  // ── Filtrar tickets ─────────────────────────────────────
+  // ── Cambia el filtro activo y redibuja la lista ───────────────
+  // Se llama al hacer clic en los botones "Todos", "Pendientes", "En proceso"
   function filtrar(estado, btn) {
     filtroActivo = estado;
     document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
@@ -155,6 +187,8 @@
     aplicarFiltro();
   }
 
+  // ── Aplica el filtro activo sobre el arreglo local ────────────
+  // No hace una nueva llamada a la API, solo filtra los datos ya cargados
   function aplicarFiltro() {
     const filtrados = filtroActivo === 'Todos'
       ? todosLosTickets
@@ -162,17 +196,20 @@
     renderizar(filtrados);
   }
 
-  // ── Renderizar tickets ──────────────────────────────────
+  // ── Dibuja las tarjetas de tickets en pantalla ────────────────
+  // Crea una tarjeta HTML por cada ticket con sus datos, badges y controles
   function renderizar(tickets) {
     const lista = document.getElementById('listaTickets');
     lista.innerHTML = '';
     document.getElementById('estadoCarga').style.display = 'none';
 
+    // Actualiza el contador de totales
     const total = todosLosTickets.length;
     const pend  = todosLosTickets.filter(t => t.estado === 'Pendiente').length;
     document.getElementById('contador').innerHTML =
       `<strong>${total}</strong> solicitudes en total · <strong>${pend}</strong> pendientes`;
 
+    // Mensaje vacío cuando no hay tickets que mostrar
     if (tickets.length === 0) {
       lista.innerHTML = `
         <div class="empty-state">
@@ -182,19 +219,23 @@
       return;
     }
 
+    // Crea una tarjeta HTML por cada ticket
     tickets.forEach(t => {
+      // Elige el color del badge de prioridad
       const badgePrioridad = {
         Alta:  'badge-alta',
         Media: 'badge-media',
         Baja:  'badge-baja',
       }[t.prioridad] || 'badge-media';
 
+      // Elige el color del badge de estado
       const badgeEstado = {
         'Pendiente':  'badge-pendiente',
         'En proceso': 'badge-en-proceso',
         'Resuelto':   'badge-resuelto',
       }[t.estado] || 'badge-pendiente';
 
+      // Formatea la fecha en español: "12 may. 2025, 03:45 p.m."
       const fecha = t.fecha_creacion
         ? new Date(t.fecha_creacion).toLocaleDateString('es-CO', {
             day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -203,23 +244,27 @@
 
       const div = document.createElement('div');
       div.className = 'ticket-card';
-      div.id = `ticket-${t.idSOPORTE}`;
+      div.id = `ticket-${t.idSOPORTE}`; // ID único para poder encontrar la tarjeta después
       div.innerHTML = `
         <div class="ticket-header">
           <div>
             <div class="ticket-asunto">${t.asunto}</div>
+            <!-- Usuario, correo y fecha de creación -->
             <div class="ticket-meta">
               <i class="ri-user-line"></i> ${t.NombreUsuario} &nbsp;·&nbsp;
               <i class="ri-mail-line"></i> ${t.EmailUsuario} &nbsp;·&nbsp;
               <i class="ri-time-line"></i> ${fecha}
             </div>
           </div>
+          <!-- Badges de prioridad y estado actuales -->
           <div style="display:flex;gap:6px;flex-shrink:0">
             <span class="badge ${badgePrioridad}">● ${t.prioridad}</span>
             <span class="badge ${badgeEstado}" id="badge-estado-${t.idSOPORTE}">${t.estado}</span>
           </div>
         </div>
+        <!-- Texto completo del problema reportado -->
         <div class="ticket-desc">${t.descripcion}</div>
+        <!-- Controles: selector de estado + botón guardar -->
         <div class="ticket-footer">
           <select class="estado-select" id="sel-${t.idSOPORTE}"
             onchange="actualizarBtnResolver(${t.idSOPORTE})">
@@ -237,11 +282,13 @@
     });
   }
 
-  // ── Cambiar estado ──────────────────────────────────────
+  // ── Guarda el nuevo estado de un ticket en la API ─────────────
+  // Se llama al hacer clic en el botón "Guardar" de cada tarjeta
   async function cambiarEstado(id) {
     const estado = document.getElementById(`sel-${id}`).value;
     const btn    = document.getElementById(`btn-${id}`);
 
+    // Deshabilita el botón mientras espera la respuesta
     btn.disabled = true;
     btn.innerHTML = '<i class="ri-loader-4-line"></i> Guardando...';
 
@@ -259,21 +306,21 @@
 
       toast(data.message, estado === 'Resuelto' ? 'success' : 'info');
 
-      // Si se resolvió → eliminar la tarjeta de la lista
       if (estado === 'Resuelto') {
+        // Si se marcó como resuelto: anima la tarjeta y la elimina de la lista
         const card = document.getElementById(`ticket-${id}`);
         card.style.transition = 'opacity .3s';
         card.style.opacity    = '0';
         setTimeout(() => {
           card.remove();
-          // Actualizar contador
+          // Actualiza el arreglo local y el contador
           todosLosTickets = todosLosTickets.filter(t => t.idSOPORTE !== id);
           const pend = todosLosTickets.filter(t => t.estado === 'Pendiente').length;
           document.getElementById('contador').innerHTML =
             `<strong>${todosLosTickets.length}</strong> solicitudes en total · <strong>${pend}</strong> pendientes`;
         }, 300);
       } else {
-        // Actualizar badge de estado visualmente
+        // Si el nuevo estado es "En proceso": solo actualiza el badge visualmente
         const badge = document.getElementById(`badge-estado-${id}`);
         badge.textContent = estado;
         badge.className   = `badge ${{
@@ -282,7 +329,7 @@
         }[estado]}`;
         btn.disabled  = false;
         btn.innerHTML = '<i class="ri-save-line"></i> Guardar';
-        // Actualizar en el array local
+        // Actualiza el estado en el arreglo local también
         const t = todosLosTickets.find(t => t.idSOPORTE === id);
         if (t) t.estado = estado;
       }
@@ -294,6 +341,8 @@
     }
   }
 
+  // ── Cambia el color/texto del botón cuando se selecciona "Resuelto" ──
+  // Da una pista visual antes de guardar: el botón se vuelve verde
   function actualizarBtnResolver(id) {
     const estado = document.getElementById(`sel-${id}`).value;
     const btn    = document.getElementById(`btn-${id}`);
@@ -306,7 +355,7 @@
     }
   }
 
-  // Cargar al inicio
+  // Carga los tickets al abrir la página
   cargarTickets();
 </script>
 </body>

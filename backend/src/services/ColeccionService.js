@@ -30,9 +30,14 @@ class ColeccionService {
         return ColeccionModel.getById(id);
     }
 
-    static async eliminar(id, usuarioId) {
+static async eliminar(id, usuarioId) {
         await ColeccionService.getById(id); // valida que existe
         return ColeccionModel.eliminar(id);
+    }
+
+    static async getPrendas(id) {
+        await ColeccionService.getById(id); // valida que la colección existe
+        return ColeccionModel.getPrendasByColeccion(id);
     }
 }
 

@@ -4,12 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Crear Usuario</title>
+  <!-- Íconos y fuentes -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <!-- Estilos generales de la app -->
   <link rel="stylesheet" href="../../css/kika.css">
 </head>
 <body class="page-user-form">
 
+<!-- ── TARJETA DE CREACIÓN DE USUARIO ──────────────────────────
+     Solo el Administrador puede acceder a esta pantalla.
+     Permite crear un nuevo usuario llenando nombre, correo, rol y contraseña. -->
 <div class="user-card">
   <div class="user-card-header">
     <i class="ri-user-add-line" style="font-size:18px"></i>
@@ -17,21 +22,24 @@
   </div>
 
   <div class="user-card-body">
+    <!-- El formulario usa novalidate para manejar los errores desde JavaScript -->
     <form id="frmCrear" novalidate>
 
+      <!-- Campo: Nombre completo -->
       <div class="input-group" style="margin-bottom:14px">
         <div class="field-label">Nombre completo *</div>
         <input class="field-input" id="nombre" type="text" placeholder="ej. Juan Pérez">
         <div class="field-error" id="err-nombre"></div>
       </div>
 
+      <!-- Campo: Correo electrónico -->
       <div class="input-group" style="margin-bottom:14px">
         <div class="field-label">Correo electrónico *</div>
         <input class="field-input" id="email" type="email" placeholder="correo@empresa.com">
         <div class="field-error" id="err-email"></div>
       </div>
 
-      <!-- Roles alineados con la tabla ROL de la BD -->
+      <!-- Selector de rol: los valores (1-4) coinciden con los IDs de la tabla ROL en la BD -->
       <div class="input-group" style="margin-bottom:14px">
         <div class="field-label">Rol *</div>
         <select class="field-input" id="rol">
@@ -44,24 +52,30 @@
         <div class="field-error" id="err-rol"></div>
       </div>
 
+      <!-- Campo: Contraseña (mínimo 8 caracteres, se valida en JS) -->
       <div class="input-group" style="margin-bottom:14px">
         <div class="field-label">Contraseña *</div>
         <input class="field-input" id="contrasena" type="password" placeholder="Mínimo 8 caracteres">
         <div class="field-error" id="err-contrasena"></div>
       </div>
 
+      <!-- Campo: Confirmar contraseña (debe coincidir con el campo anterior) -->
       <div class="input-group" style="margin-bottom:14px">
         <div class="field-label">Confirmar contraseña *</div>
         <input class="field-input" id="confirmar" type="password" placeholder="Repite la contraseña">
         <div class="field-error" id="err-confirmar"></div>
       </div>
 
+      <!-- Error global (ej. "El correo ya está en uso") que viene del servidor -->
       <div id="errGlobal" style="font-size:11px;color:var(--red);min-height:14px;margin-bottom:8px"></div>
 
+      <!-- Botones de acción -->
       <div class="form-actions" style="border-top:1px solid var(--gray-mid);padding-top:16px;margin-top:4px">
+        <!-- Limpiar: borra todos los campos y mensajes de error -->
         <button type="button" class="btn btn-cancel" onclick="limpiarForm()">
           <i class="ri-close-line"></i> Limpiar
         </button>
+        <!-- Crear usuario: envía el formulario -->
         <button type="submit" class="btn btn-secondary" id="btnCrear">
           <i class="ri-user-add-line"></i> Crear usuario
         </button>
@@ -71,29 +85,33 @@
   </div>
 </div>
 
+<!-- Contenedor de notificaciones emergentes (toasts) -->
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- Funciones globales compartidas -->
 <script src="../../js/kika.js"></script>
 <script>
-  /* Guard: esta página solo puede abrirse desde el shell (con token en parent).
-     Si alguien accede directamente sin sesión, lo manda al login. */
+  // ── Seguridad: solo el Administrador (rol 4) puede abrir esta pantalla ──
+  // Si otra persona intenta acceder directamente, se redirige al login
   requireAuth([4]);
 
-  /* ── Limpia el formulario y sus errores ─────── */
+  // ── Limpia el formulario y todos sus mensajes de error ────────
   function limpiarForm() {
     const form = document.getElementById('frmCrear');
-    form.reset();
-    limpiarErrores(form);
+    form.reset();               // Vacía todos los campos
+    limpiarErrores(form);       // Borra los mensajes de error (función de kika.js)
     document.getElementById('errGlobal').textContent = '';
   }
 
-  /* ── Envío del formulario ───────────────────── */
+  // ── Envío del formulario ─────────────────────────────────────
   document.getElementById('frmCrear').addEventListener('submit', async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Evita que la página se recargue
 
-    // Limpiar estado previo
+    // Limpia errores previos antes de validar de nuevo
     limpiarErrores(e.target);
     document.getElementById('errGlobal').textContent = '';
 
+    // Lee los valores de cada campo
     const nombre    = document.getElementById('nombre').value.trim();
     const email     = document.getElementById('email').value.trim();
     const rol       = document.getElementById('rol').value;
@@ -101,21 +119,30 @@
     const confirmar = document.getElementById('confirmar').value;
     let ok = true;
 
-    // Validaciones del lado del cliente
-    if (!nombre)                          { setErr('nombre',    'Ingresa el nombre completo'); ok = false; }
-    if (!email)                           { setErr('email',     'Ingresa el correo'); ok = false; }
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErr('email', 'Correo inválido'); ok = false; }
-    if (!rol)                             { setErr('rol',       'Selecciona un rol'); ok = false; }
-    if (!pass || pass.length < 8)         { setErr('contrasena','Mínimo 8 caracteres'); ok = false; }
-    if (pass !== confirmar)               { setErr('confirmar', 'Las contraseñas no coinciden'); ok = false; }
-    if (!ok) return;
+    // ── Validaciones del lado del cliente ──────────────────────
+    // Se muestran los errores sin llamar al servidor todavía
+    if (!nombre)
+      { setErr('nombre',    'Ingresa el nombre completo'); ok = false; }
+    if (!email)
+      { setErr('email',     'Ingresa el correo'); ok = false; }
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      { setErr('email',     'Correo inválido'); ok = false; }
+    if (!rol)
+      { setErr('rol',       'Selecciona un rol'); ok = false; }
+    if (!pass || pass.length < 8)
+      { setErr('contrasena','Mínimo 8 caracteres'); ok = false; }
+    if (pass !== confirmar)
+      { setErr('confirmar', 'Las contraseñas no coinciden'); ok = false; }
 
-    // Estado de carga
+    if (!ok) return; // Si hay algún error, no continúa con la llamada al servidor
+
+    // Desactiva el botón y muestra "Creando..." para evitar doble clic
     const btn = document.getElementById('btnCrear');
     btn.disabled = true;
     btn.innerHTML = '<i class="ri-loader-4-line"></i> Creando...';
 
     try {
+      // ── Llama a la API para crear el usuario ─────────────────
       const res = await fetch(`${API_URL}/usuarios`, {
         method: 'POST',
         headers: {
@@ -125,7 +152,7 @@
         body: JSON.stringify({
           Nombre:    nombre,
           Email:     email,
-          ROL_idROL: parseInt(rol),
+          ROL_idROL: parseInt(rol), // Convierte a número entero
           Password:  pass
         })
       });
@@ -133,16 +160,20 @@
       const data = await res.json();
 
       if (!res.ok) {
+        // El servidor devolvió un error (ej. "El correo ya existe")
         document.getElementById('errGlobal').textContent = data.message || 'Error al crear el usuario';
         return;
       }
 
+      // ── Éxito: muestra notificación y limpia el formulario ───
       toast('Usuario creado correctamente', 'success');
-      setTimeout(() => limpiarForm(), 1500);
+      setTimeout(() => limpiarForm(), 1500); // Espera 1.5 seg para que el usuario vea el toast
 
     } catch {
+      // Error de red: el servidor no responde
       document.getElementById('errGlobal').textContent = 'No se pudo conectar al servidor';
     } finally {
+      // Siempre reactiva el botón al terminar
       btn.disabled = false;
       btn.innerHTML = '<i class="ri-user-add-line"></i> Crear usuario';
     }

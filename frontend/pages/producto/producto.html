@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <!--
-  Costeo.html — Módulo de Costeo Textil PF-FW 2026
+  producto.html — Módulo de Costeo Textil PF-FW 2026
   Se carga dentro del iframe de Interfas_Admin.html
-  NO tiene login propio: toma token y rol del shell padre (window.parent)
+  NO tiene login propio: toma el token y rol del shell padre (window.parent)
   Roles permitidos: 4 (Admin), 1 (Materia Prima), 2 (Costeo)
 -->
 <html lang="es">
@@ -10,12 +10,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>KV · Costeo Textil</title>
+  <!-- Fuentes: IBM Plex Mono para números/tablas, DM Sans para textos generales -->
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Estilos generales de la app y estilos específicos del módulo de costeo -->
   <link rel="stylesheet" href="../../css/kika.css">
   <link rel="stylesheet" href="../../css/costeo.css">
 <style>
+  /* Oculta la barra superior interna del módulo porque el shell ya tiene la suya */
   #topbar { display: none !important; }
 
+  /* Permite que el contenido crezca verticalmente sin cortes */
   html, body {
     height: 100%;
     margin: 0;
@@ -37,39 +41,54 @@
 </style>
 </head>
 <body>
-<!-- ── TOPBAR INTERNO del módulo ──────────────────────────── -->
+
+<!-- ── BARRA SUPERIOR INTERNA (OCULTA) ────────────────────────
+     Esta barra existe para cuando el módulo se usa de forma independiente
+     (sin el shell). Cuando se carga en el iframe se oculta con CSS. -->
 <div id="topbar">
   <div class="brand">KV</div>
   <div class="subtitle">Costeo Textil · PF-FW 2026</div>
   <div class="spacer"></div>
+  <!-- Caja para ingresar la TRM (tasa de cambio COP/USD) -->
   <div class="top-trm" id="trm-box" style="display:none">
     TRM $<input id="g-trm" type="number" value="3700" onchange="onTrmChange(this.value)"> COP/USD
   </div>
+  <!-- Chip con el nombre y rol del usuario actual -->
   <div class="user-chip" id="user-chip">
     <div class="role-dot" id="role-dot"></div>
     <span id="user-label"></span>
   </div>
+  <!-- Botones opcionales: cargar demo y exportar CSV -->
   <button class="top-btn amber" id="btn-demo" onclick="loadDemo()" style="display:none">▶ Cargar Demo</button>
   <button class="top-btn" id="btn-csv" onclick="exportCSV()" style="display:none">⬇ CSV</button>
 </div>
 
-<!-- ── TABS ──────────────────────────────────────────────── -->
+<!-- ── PESTAÑAS DE NAVEGACIÓN ─────────────────────────────────
+     Se generan dinámicamente desde JavaScript según el rol del usuario.
+     Ejemplos: Colecciones, Telas & Insumos, Consolidado, Canal de Venta, Consulta, Historial -->
 <div id="tabstrip"></div>
 
-<!-- ── CONTENIDO ─────────────────────────────────────────── -->
+<!-- ── ÁREA DE CONTENIDO ─────────────────────────────────────
+     Aquí se carga el "pane" (panel) de la pestaña activa.
+     Cada pane tiene su propio archivo JS (ej. pane-telas.js). -->
 <div id="content"></div>
 
-<!-- ── MODAL: Insumos Fijos ──────────────────────────────── -->
+
+<!-- ── MODAL: INSUMOS FIJOS ──────────────────────────────────
+     Se abre desde cualquier parte del módulo para gestionar los
+     insumos que se aplican automáticamente a TODAS las prendas. -->
 <div id="fijos-modal" class="modal-bg" style="display:none">
   <div class="modal">
     <div class="modal-head">
       <h3>⚙ Insumos Fijos — Aplican a TODAS las referencias</h3>
+      <!-- Botón cerrar el modal -->
       <button class="btn-del" onclick="closeFijosModal()">✕</button>
     </div>
     <div class="modal-body">
       <p style="font-size:11px;color:var(--tx3);margin-bottom:10px">
         Se suman automáticamente a cada prenda. Cambia precio o cantidad → el consolidado se recalcula.
       </p>
+      <!-- Tabla de insumos fijos: se llena dinámicamente desde JS -->
       <table class="xgrid" style="width:100%">
         <thead><tr>
           <th>Insumo Fijo</th>
@@ -79,6 +98,7 @@
           <th style="width:28px"></th>
         </tr></thead>
         <tbody id="fijos-body"></tbody>
+        <!-- Fila de totales al pie de la tabla -->
         <tfoot><tr>
           <td colspan="3" style="text-align:right;padding:6px 8px;font-weight:700;font-size:11px">TOTAL FIJOS/PRENDA</td>
           <td class="ttl num" style="padding:4px 8px;font-family:var(--mono);font-weight:700" id="fijos-total-modal">$ 0</td>
@@ -86,29 +106,38 @@
         </tr></tfoot>
       </table>
       <div style="margin-top:10px;display:flex;gap:8px">
+        <!-- Botón para agregar una fila vacía nueva -->
         <button class="btn btn-o btn-sm" onclick="addFijoRow()">+ Agregar</button>
+        <!-- Botón para cargar los insumos por defecto que vienen del Excel original -->
         <button class="btn btn-o btn-sm" onclick="seedFijos()">Cargar defaults Excel</button>
       </div>
     </div>
     <div class="modal-foot">
+      <!-- Cerrar aplica los cambios (el recálculo es automático al modificar los campos) -->
       <button class="btn btn-g" onclick="closeFijosModal()">Aplicar y cerrar</button>
     </div>
   </div>
 </div>
 
-<!-- ── MODAL: Colección ───────────────────────────────────── -->
+
+<!-- ── MODAL: COLECCIÓN ───────────────────────────────────────
+     Se usa tanto para crear una nueva colección como para editar una existente.
+     El título cambia según el caso ("Nueva Colección" o "Editar Colección"). -->
 <div id="col-modal" class="modal-bg" style="display:none">
   <div class="modal" style="width:480px">
     <div class="modal-head">
+      <!-- El título se actualiza desde JavaScript -->
       <h3 id="col-modal-title">Nueva Colección</h3>
       <button class="btn-del" onclick="closeColModal()">✕</button>
     </div>
     <div class="modal-body">
       <div style="display:flex;flex-direction:column;gap:12px">
+        <!-- Nombre de la colección -->
         <div class="fg">
           <label>Nombre colección</label>
           <input id="cm-name" placeholder="PRE-FALL 26" style="width:100%">
         </div>
+        <!-- Temporada y año en la misma fila -->
         <div style="display:flex;gap:10px">
           <div class="fg" style="flex:1">
             <label>Temporada</label>
@@ -122,6 +151,7 @@
             <input id="cm-year" type="number" value="2026">
           </div>
         </div>
+        <!-- Descripción opcional -->
         <div class="fg">
           <label>Descripción</label>
           <input id="cm-desc" placeholder="Descripción opcional…" style="width:100%">
@@ -130,15 +160,26 @@
     </div>
     <div class="modal-foot">
       <button class="btn btn-o" onclick="closeColModal()">Cancelar</button>
+      <!-- Guardar llama a saveCollection() que maneja tanto crear como editar -->
       <button class="btn btn-g" onclick="saveCollection()">Guardar</button>
     </div>
   </div>
 </div>
 
-<!-- ── TOAST ──────────────────────────────────────────────── -->
+
+<!-- Área donde aparecen las notificaciones tipo "toast" (mensajes flotantes) -->
 <div id="toast"></div>
 
-<!-- ── SCRIPTS (orden obligatorio) ───────────────────────── -->
+
+<!-- ── SCRIPTS DEL MÓDULO (el orden importa) ─────────────────
+     Cada archivo maneja una responsabilidad específica:
+     utils     → funciones de utilidad (formato de moneda, fechas, etc.)
+     state     → estado global compartido entre todos los panes
+     calculator→ lógica de cálculo de costos
+     auth      → validación de acceso dentro del módulo
+     pane-*    → cada archivo maneja el contenido de una pestaña
+     demo      → datos de prueba para modo demo
+     app       → inicializa todo y conecta las piezas -->
 <script src="../../js/utils.js"></script>
 <script src="../../js/state.js"></script>
 <script src="../../js/calculator.js"></script>
@@ -152,16 +193,22 @@
 <script src="../../js/pane-historial.js"></script>
 <script src="../../js/demo.js"></script>
 <script src="../../js/app.js"></script>
+<!-- Librería para exportar datos a Excel/CSV -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
+  // ── Inicialización: toma los datos de sesión del shell padre ──
+  // Este módulo no tiene login propio; recibe todo desde Interfas_Admin.html
   (function initFromKika() {
   
     const parent   = window.parent;
+    // Intenta obtener token y datos del usuario desde la ventana padre (iframe)
+    // Si no existen ahí, los busca en el sessionStorage del navegador
     const token    = parent?.kikaToken    || sessionStorage.getItem('kika_token');
     const usuario  = parent?.kikaUsuario  || JSON.parse(sessionStorage.getItem('kika_usuario') || 'null');
     const rolKika  = parseInt(parent?.kikaRol) || parseInt(sessionStorage.getItem('kika_rol') || '0');
   
+    // Si no hay sesión, muestra un mensaje de error y detiene la ejecución
     if (!token || !usuario) {
       document.body.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;
@@ -174,9 +221,12 @@
       return;
     }
   
+    // Traduce el número de rol de Kika al nombre interno que usa el módulo de costeo
+    // Kika: 4=admin, 1=materia_prima, 2=finanzas
     const ROL_MAP   = { 4: 'admin', 1: 'materia_prima', 2: 'finanzas' };
     const rolCosteo = ROL_MAP[rolKika];
   
+    // Si el rol no está en el mapa (ej. rol 3 = Consulta), muestra error de acceso
     if (!rolCosteo) {
       document.body.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;
@@ -192,26 +242,31 @@
       return;
     }
   
+    // Guarda los datos del usuario en la variable global del módulo
     currentUser = {
       name:  usuario.Nombre,
       role:  rolCosteo,
       token: token,
     };
   
+    // Construye la interfaz (pestañas y contenido según el rol)
     buildUI();
   
+    // Registra en el historial que este usuario accedió al módulo
     addHist('Accedió al módulo de Costeo', 'Login',
       `${usuario.Nombre} (Rol Kika: ${rolKika})`);
   
   })();
 
-  // Leer tab inicial desde la URL si viene desde la barra superior
-const tabParam = new URLSearchParams(window.location.search).get('tab');
-if (tabParam) {
-  const btn = document.getElementById('tab-' + tabParam);
-  if (btn) goTab(tabParam, btn);
-}
-  </script>
+  // ── Abre directamente la pestaña indicada en la URL ───────────
+  // Ejemplo: producto.html?tab=materia  →  abre la pestaña "Telas & Insumos"
+  // Esto lo usa la barra de navegación del shell cuando el usuario hace clic en un botón
+  const tabParam = new URLSearchParams(window.location.search).get('tab');
+  if (tabParam) {
+    const btn = document.getElementById('tab-' + tabParam);
+    if (btn) goTab(tabParam, btn);
+  }
+</script>
 
 </body>
 </html>

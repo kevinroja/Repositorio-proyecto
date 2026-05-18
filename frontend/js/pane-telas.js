@@ -113,11 +113,12 @@ function buildPaneTelas() {
  * @returns {Object} La fila creada
  */
 function addTelaRow(data) {
-  const row = {
-    id:     ID(),
-    ref:    data?.ref    || '',
-    col:    data?.col    || '',
-    taller: data?.taller || '',
+const row = {
+  id:     ID(),
+  ref:    data?.ref    || '',
+  col:    data?.col    || '',
+  colId:  data?.colId  || '',
+  taller: data?.taller || '',
     m:      data?.m      || emptyMats(),
     ajuste: data?.ajuste ?? 5,   // Ajuste USD manual por defecto = 5
     margen: data?.margen ?? 40   // Margen extra USD por defecto = 40
@@ -182,11 +183,15 @@ function renderTelas() {
           : `<span class="cell-ro" style="text-align:left;font-weight:600">${esc(row.ref)}</span>`}
         </td>
         <!-- Colección -->
-        <td>${edit
-          ? `<input class="ci left" value="${esc(row.col)}"
-               onchange="updateT('${row.id}','col',null,null,this.value)"
-               style="min-width:90px">`
-          : `<span class="cell-ro" style="text-align:left">${esc(row.col)}</span>`}
+       <td>${edit
+        ? `<select class="ci left" style="min-width:120px"
+        onchange="updateTCol('${row.id}', this.value, this.options[this.selectedIndex].text)">
+        <option value="">-- Colección --</option>
+        ${COLECCIONES.map(c =>
+         `<option value="${c.id}" ${c.id == row.colId ? 'selected' : ''}>${esc(c.name)}</option>`
+       ).join('')}
+     </select>`
+      : `<span class="cell-ro" style="text-align:left">${esc(row.col)}</span>`}
         </td>
         <!-- Costo Taller -->
         <td class="num">${edit
@@ -402,7 +407,6 @@ async function guardarTelas() {
 
   let ok = 0, err = 0;
   for (const row of TELAS) {
-    const colObj = COLECCIONES.find(c => c.name === row.col);
     const materiales = row.m
       .filter(m => m.mat)
       .map(m => ({ Nombre: m.mat, Mts: +m.mts || 0, Precio: +m.precio || 0 }));
@@ -419,13 +423,13 @@ async function guardarTelas() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
-          ref:        row.ref,
-          colId:      colObj?.id || null,
-          taller:     +row.taller || 0,
-          ttlMat:     calcTtlMat(row),
-          ttlInsVar:  insRow ? calcTtlVar(insRow) : 0,
+          ref:         row.ref,
+          colId:       row.colId || null,
+          taller:      +row.taller || 0,
+          ttlMat:      calcTtlMat(row),
+          ttlInsVar:   insRow ? calcTtlVar(insRow) : 0,
           ttlInsFijos: fijosTotal,
-          costoTotal: calcTtlMat(row) + (insRow ? calcTtlVar(insRow) : 0) + fijosTotal,
+          costoTotal:  calcTtlMat(row) + (insRow ? calcTtlVar(insRow) : 0) + fijosTotal,
           materiales,
           insumos
         })
@@ -443,4 +447,11 @@ async function guardarTelas() {
   });
 
   toast(err ? `⚠ ${ok} guardadas, ${err} con error` : `✓ ${ok} prendas guardadas en BD`);
+}
+
+function updateTCol(id, colId, colName) {
+  const r = TELAS.find(x => x.id === id);
+  if (!r) return;
+  r.colId = colId;
+  r.col   = colName;
 }

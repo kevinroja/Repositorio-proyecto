@@ -6,6 +6,7 @@ const { authMiddleware, rolesMiddleware } = require('../middlewares/auth.middlew
 // Todos los roles autenticados pueden ver colecciones
 router.get('/',    authMiddleware, ColeccionController.getAll);
 router.get('/:id', authMiddleware, ColeccionController.getById);
+router.get('/:id/prendas', authMiddleware, ColeccionController.getPrendas);
 
 // Solo Admin (rol 4) y Materia Prima (rol 1) pueden crear/editar/eliminar
 router.post('/',      authMiddleware, rolesMiddleware(1, 4), ColeccionController.crear);

@@ -36,10 +36,27 @@ class ColeccionModel {
         );
     }
 
-    static async eliminar(id) {
+ static async eliminar(id) {
         return db.execute(
             `DELETE FROM COLECCION WHERE idCOLECCION = ?`, [id]
         );
+    }
+
+    static async getPrendasByColeccion(id) {
+        const rows = await db.query(
+            `SELECT 
+                idPREND,
+                Referencia,
+                ttl_materiales,
+                ttl_insumos_var,
+                ttl_insumos_fijos,
+                Costo_confeccion,
+                Costo_total
+             FROM prenda
+             WHERE COLECCION_idCOLECCION = ?`,
+            [id]
+        );
+        return rows;
     }
 }
 

@@ -4,17 +4,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kika — Acceso</title>
+  <!-- Íconos y fuentes que se usan en toda la app -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <!-- Estilos generales de la app y estilos específicos del login -->
   <link rel="stylesheet" href="css/kika.css">
   <link rel="stylesheet" href="css/login.css">
 </head>
 <body class="page-login">
 
+<!-- ── TARJETA PRINCIPAL DEL LOGIN ──────────────────────────────
+     Es la caja blanca centrada que contiene todo: logo, perfil y formulario -->
 <div class="login-card">
+
+  <!-- Logo de la empresa -->
   <img src="img/LOGO NEGRO.png" alt="Kika" class="logo">
   <h2>Sistema de Costeo</h2>
 
+  <!-- Mensaje de sesión: aparece cuando la URL trae ?msg=... (ej. "Sesión expirada") -->
   <div class="session-msg" id="sessionMsg">
     <i class="ri-alert-line"></i>
     <span id="sessionMsgText"></span>
@@ -24,6 +31,9 @@
     Selecciona tu perfil e ingresa tus credenciales
   </p>
 
+  <!-- ── BOTONES DE PERFIL ──────────────────────────────────────
+       El usuario debe elegir un rol antes de poder iniciar sesión.
+       Al hacer clic se activa la función selRole() y el botón queda resaltado. -->
   <div class="role-grid">
     <button class="role-btn" data-role="1" onclick="selRole(this)">
       <i class="ri-box-3-line"></i>
@@ -35,6 +45,7 @@
       <span class="role-name">Costeo</span>
       <span class="role-desc">Conformación de precio</span>
     </button>
+    <!-- Botón que ocupa todo el ancho (clase "full") -->
     <button class="role-btn full" data-role="3" onclick="selRole(this)">
       <i class="ri-bar-chart-line"></i>
       <span class="role-name">Consulta</span>
@@ -48,28 +59,35 @@
     </button>
   </div>
 
+  <!-- Mensaje de error general (ej. "Selecciona un perfil") -->
   <div id="loginErr" style="font-size:11px;color:var(--red);min-height:14px;margin-bottom:4px;width:100%"></div>
 
+  <!-- ── FORMULARIO DE CREDENCIALES ────────────────────────────── -->
   <form id="loginForm" novalidate style="width:100%">
 
+    <!-- Campo de correo electrónico -->
     <div class="input-group">
       <i class="ri-mail-line"></i>
       <input id="email" type="email" placeholder="Correo electrónico" autocomplete="email">
     </div>
+    <!-- Mensaje de error específico del correo -->
     <div class="error-msg" id="err-email"></div>
 
-    <!-- CONTRASEÑA: wrapper externo para posicionar el ojo -->
+    <!-- Campo de contraseña con botón para mostrar/ocultar el texto -->
     <div class="password-wrapper">
       <div class="input-group">
         <i class="ri-lock-line"></i>
         <input id="password" type="password" placeholder="Contraseña" autocomplete="current-password">
       </div>
+      <!-- Botón del ojito: cambia el campo entre "password" y "text" -->
       <button type="button" class="toggle-pass" id="togglePass" tabindex="-1">
         <i class="ri-eye-off-line" id="eyeIcon"></i>
       </button>
     </div>
+    <!-- Mensaje de error específico de la contraseña -->
     <div class="error-msg" id="err-password"></div>
 
+    <!-- Botón de envío del formulario -->
     <button type="submit" class="btn-login" id="btnLogin" style="margin-top:18px">
       <span id="btnText">ACCEDER</span>
     </button>
@@ -78,9 +96,14 @@
 </div>
 
 <script>
+  // Guarda el rol que el usuario elige (1=Materia Prima, 2=Costeo, 3=Consulta, 4=Admin)
   let roleSeleccionado = null;
+
+  // Dirección base de la API del backend
   const API_URL = 'http://localhost:3000/api';
 
+  // ── Muestra mensaje de sesión si la URL trae el parámetro ?msg=... ──
+  // Ejemplo: index.html?msg=Tu%20sesión%20expiró
   const params = new URLSearchParams(window.location.search);
   const msgParam = params.get('msg');
   if (msgParam) {
@@ -89,37 +112,46 @@
     box.classList.add('show');
   }
 
+  // ── Revisa si ya hay una sesión activa ──────────────────────────
+  // Si el token guardado en el navegador todavía es válido,
+  // redirige directo al panel sin mostrar el login
   (function verificarSesionExistente() {
     const token   = sessionStorage.getItem('kika_token');
     const usuario = JSON.parse(sessionStorage.getItem('kika_usuario') || 'null');
-    if (!token || !usuario) return;
+    if (!token || !usuario) return; // No hay sesión guardada, sigue normal
     try {
+      // Decodifica el token JWT para leer su fecha de expiración
       const payload = JSON.parse(atob(token.split('.')[1]));
       if (!payload.exp || Date.now() / 1000 < payload.exp) {
+        // El token aún no expiró → va directo al panel
         window.location.href = 'pages/shells/Interfas_Admin.html';
       }
-    } catch { /* token inválido */ }
+    } catch { /* Si el token está corrupto, se ignora y muestra el login */ }
   })();
 
+  // ── Marca el botón de rol seleccionado ──────────────────────────
+  // Quita la clase "selected" de todos y la pone solo en el botón clickeado
   function selRole(btn) {
     document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
-    roleSeleccionado = btn.dataset.role;
+    roleSeleccionado = btn.dataset.role; // Guarda el número de rol (1-4)
     document.getElementById('loginErr').textContent = '';
   }
 
+  // ── Botón del ojito: muestra u oculta la contraseña ─────────────
   document.getElementById('togglePass').addEventListener('click', function () {
     const input = document.getElementById('password');
     const icon  = document.getElementById('eyeIcon');
     if (input.type === 'password') {
-      input.type     = 'text';
-      icon.className = 'ri-eye-line';
+      input.type     = 'text';           // Mostrar texto
+      icon.className = 'ri-eye-line';    // Ícono ojo abierto
     } else {
-      input.type     = 'password';
-      icon.className = 'ri-eye-off-line';
+      input.type     = 'password';       // Ocultar texto
+      icon.className = 'ri-eye-off-line'; // Ícono ojo cerrado
     }
   });
 
+  // ── Borra los mensajes de error cuando el usuario escribe ────────
   ['email', 'password'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => {
       document.getElementById(`err-${id}`).textContent = '';
@@ -127,33 +159,39 @@
     });
   });
 
+  // ── Envío del formulario de login ───────────────────────────────
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Evita que la página se recargue al enviar
 
     const email    = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
     let valid = true;
 
+    // Validación 1: debe haber un rol seleccionado
     if (!roleSeleccionado) {
       document.getElementById('loginErr').textContent = 'Selecciona un perfil para continuar';
       return;
     }
+    // Validación 2: correo no vacío y con formato válido
     if (!email) {
       mostrarError('err-email', 'Ingresa tu correo electrónico'); valid = false;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       mostrarError('err-email', 'Correo electrónico no válido'); valid = false;
     }
+    // Validación 3: contraseña no vacía
     if (!password) {
       mostrarError('err-password', 'Ingresa tu contraseña'); valid = false;
     }
-    if (!valid) return;
+    if (!valid) return; // Si hay errores, no continúa
 
+    // Deshabilita el botón y cambia el texto para indicar que está cargando
     const btn  = document.getElementById('btnLogin');
     const text = document.getElementById('btnText');
     btn.disabled     = true;
     text.textContent = 'Verificando...';
 
     try {
+      // ── Llama a la API para verificar las credenciales ──────────
       const res = await fetch(`${API_URL}/auth/login`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -161,25 +199,31 @@
       });
       const data = await res.json();
 
+      // Si el servidor responde con error (ej. contraseña incorrecta), lo muestra
       if (!res.ok) {
         document.getElementById('loginErr').textContent = data.message || 'Error al iniciar sesión';
         return;
       }
 
-      sessionStorage.setItem('kika_token',   data.token);
-      sessionStorage.setItem('kika_usuario', JSON.stringify(data.usuario));
-      sessionStorage.setItem('kika_rol',     data.usuario.ROL_idROL);
+      // ── Login exitoso: guarda los datos de sesión en el navegador ──
+      sessionStorage.setItem('kika_token',   data.token);               // Token JWT
+      sessionStorage.setItem('kika_usuario', JSON.stringify(data.usuario)); // Datos del usuario
+      sessionStorage.setItem('kika_rol',     data.usuario.ROL_idROL);   // Número de rol
 
+      // Redirige al panel principal
       window.location.href = 'pages/shells/Interfas_Admin.html';
 
     } catch {
+      // Error de red: el servidor no responde
       document.getElementById('loginErr').textContent = 'No se pudo conectar al servidor. Intenta de nuevo.';
     } finally {
+      // Siempre reactiva el botón al terminar (haya error o no)
       btn.disabled     = false;
       text.textContent = 'ACCEDER';
     }
   });
 
+  // ── Muestra un mensaje de error debajo de un campo ──────────────
   function mostrarError(id, msg) {
     const el = document.getElementById(id);
     el.textContent = msg;

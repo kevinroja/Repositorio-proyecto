@@ -4,12 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Eliminar Usuario</title>
+  <!-- Íconos y fuentes -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <!-- Estilos generales de la app -->
   <link rel="stylesheet" href="../../css/kika.css">
 </head>
 <body class="page-user-form">
 
+<!-- ── TARJETA ELIMINAR USUARIO ────────────────────────────────
+     Solo el Administrador puede acceder.
+     El encabezado es rojo para advertir visualmente que es una acción destructiva.
+     Un usuario no puede eliminarse a sí mismo. -->
 <div class="user-card" style="max-width:520px">
   <div class="user-card-header" style="background:var(--red)">
     <i class="ri-user-unfollow-line" style="font-size:18px"></i>
@@ -17,7 +23,8 @@
   </div>
   <div class="user-card-body">
 
-    <!-- Advertencia visual -->
+    <!-- ── Advertencia en rojo ────────────────────────────────────
+         Recuerda que esta acción no se puede deshacer -->
     <div style="background:#fff0f0;border:1px solid #f5c6c6;border-radius:8px;
                 padding:12px;margin-bottom:18px;font-size:12px;color:var(--red);line-height:1.6">
       <i class="ri-error-warning-line"></i>
@@ -25,12 +32,14 @@
       inmediatamente.
     </div>
 
-    <!-- Buscador -->
+    <!-- ── BUSCADOR EN TIEMPO REAL ────────────────────────────────
+         Igual que en Bloquear: filtra localmente, sin llamadas extra a la API. -->
     <div style="margin-bottom:16px">
       <div class="field-label">Buscar usuario</div>
       <div style="display:flex;gap:8px">
         <input class="field-input" id="buscar" type="text"
                placeholder="Nombre o correo" style="flex:1" oninput="filtrar()">
+        <!-- Botón para recargar la lista completa desde el servidor -->
         <button type="button" class="btn btn-cancel" style="height:40px;padding:0 14px"
                 onclick="cargarUsuarios()" title="Recargar lista">
           <i class="ri-refresh-line"></i>
@@ -38,25 +47,30 @@
       </div>
     </div>
 
+    <!-- Spinner mientras se cargan los usuarios -->
     <div id="estadoCarga" style="text-align:center;padding:24px;font-size:13px;color:var(--text-sec)">
       <i class="ri-loader-4-line"></i> Cargando usuarios...
     </div>
 
+    <!-- Aquí se insertan las filas de usuarios desde JavaScript -->
     <div id="listaUsuarios" style="display:none"></div>
 
   </div>
 </div>
 
+<!-- Contenedor de notificaciones emergentes (toasts) -->
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- Funciones globales compartidas -->
 <script src="../../js/kika.js"></script>
 <script>
-  /* Guard: solo administradores */
+  // ── Seguridad: solo el Administrador (rol 4) puede abrir esta pantalla ──
   requireAuth([4]);
 
-  /** Caché local para filtrado sin llamadas extra */
+  // Guarda en memoria la lista completa para poder filtrar sin llamar a la API
   let todosLosUsuarios = [];
 
-  /* ── Carga usuarios desde la API ─────────── */
+  // ── Carga la lista de usuarios desde el servidor ─────────────
   async function cargarUsuarios() {
     document.getElementById('estadoCarga').style.display = 'block';
     document.getElementById('estadoCarga').innerHTML = '<i class="ri-loader-4-line"></i> Cargando...';
@@ -78,37 +92,45 @@
     }
   }
 
-  /* ── Renderiza el listado ────────────────────
-     El usuario logueado no puede eliminarse a sí mismo */
+  // ── Dibuja la lista de usuarios en pantalla ───────────────────
+  // El administrador que está logueado no puede eliminarse a sí mismo:
+  // su propia fila aparece opaca y con el botón deshabilitado.
   function renderizar(usuarios) {
-    const lista   = document.getElementById('listaUsuarios');
-    const yo      = window.parent?.kikaUsuario || JSON.parse(sessionStorage.getItem('kika_usuario') || 'null');
+    const lista = document.getElementById('listaUsuarios');
+    // Obtiene los datos del usuario logueado (desde el shell padre o desde sessionStorage)
+    const yo    = window.parent?.kikaUsuario || JSON.parse(sessionStorage.getItem('kika_usuario') || 'null');
     lista.innerHTML = '';
 
     if (!usuarios.length) {
       lista.innerHTML = '<p style="text-align:center;color:var(--text-sec);font-size:13px;padding:16px">No se encontraron usuarios</p>';
     } else {
       usuarios.forEach(u => {
+        // Detecta si este usuario es el mismo que está usando la app
         const esSelf = yo && u.idUSUARIO === yo.idUSUARIO;
+
         const div = document.createElement('div');
         div.className = 'ticket';
         div.style.cssText = `display:flex;align-items:center;justify-content:space-between;
           gap:12px;margin-bottom:8px;${esSelf ? 'opacity:.45' : ''}`;
+          // Si es el mismo usuario logueado: se muestra opaco para indicar que no se puede eliminar
 
         div.innerHTML = `
           <div style="flex:1;min-width:0">
             <div style="font-weight:700;font-size:13px">
               ${u.Nombre}
+              <!-- Etiqueta "(tú)" junto al nombre del usuario logueado -->
               ${esSelf ? '<span style="font-size:10px;color:var(--text-sec)"> (tú)</span>' : ''}
             </div>
             <div style="font-size:11px;color:var(--text-sec);margin-top:1px">
               ${u.Email} · ${ROLES[u.ROL_idROL] || '—'}
             </div>
+            <!-- Indicador de estado: verde "Activo" o rojo "Bloqueado" -->
             <div style="font-size:11px;font-weight:600;margin-top:3px;
               color:${u.Activo ? 'var(--teal)' : 'var(--red)'}">
               ${u.Activo ? '● Activo' : '● Bloqueado'}
             </div>
           </div>
+          <!-- Botón "Eliminar": deshabilitado si es el usuario logueado -->
           <button class="btn btn-danger" style="padding:6px 14px;font-size:12px;flex-shrink:0"
             ${esSelf ? 'disabled title="No puedes eliminarte a ti mismo"' : ''}
             onclick="eliminar(${u.idUSUARIO}, '${u.Nombre.replace(/'/g,"\\'")}', this)">
@@ -123,7 +145,7 @@
     lista.style.display = 'block';
   }
 
-  /* ── Filtra localmente sin llamar al backend ── */
+  // ── Filtra la lista local sin llamar a la API ─────────────────
   function filtrar() {
     const val = document.getElementById('buscar').value.trim().toLowerCase();
     renderizar(!val
@@ -135,20 +157,22 @@
     );
   }
 
-  /* ── Elimina un usuario tras confirmar con modal ──
-     Usa confirmar() de kika.js, no confirm() nativo  */
+  // ── Elimina un usuario tras pedir confirmación ────────────────
+  // Usa el modal de kika.js (no el confirm() nativo del navegador)
   async function eliminar(id, nombre, btn) {
     const ok = await confirmar(
       `¿Eliminar al usuario <strong>${nombre}</strong>? Esta acción no se puede deshacer.`,
       'danger',
       'Eliminar'
     );
-    if (!ok) return;
+    if (!ok) return; // El admin canceló, no hace nada
 
+    // Desactiva el botón mientras espera la respuesta del servidor
     btn.disabled = true;
     btn.innerHTML = '<i class="ri-loader-4-line"></i>';
 
     try {
+      // ── Llama a la API: DELETE /usuarios/:id ─────────────────
       const res = await fetch(`${API_URL}/usuarios/${id}`, {
         method:  'DELETE',
         headers: { 'Authorization': `Bearer ${getToken()}` }
@@ -156,17 +180,19 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
+      // Notificación con el nombre del usuario eliminado y recarga la lista
       toast(`Usuario "${nombre}" eliminado`, 'error');
       await cargarUsuarios();
 
     } catch (err) {
       toast('Error: ' + err.message, 'error');
+      // Reactiva el botón si hubo un error para que el admin pueda intentarlo de nuevo
       btn.disabled = false;
       btn.innerHTML = '<i class="ri-delete-bin-line"></i> Eliminar';
     }
   }
 
-  /* Cargar al abrir la página */
+  // Carga la lista de usuarios al abrir la pantalla
   cargarUsuarios();
 </script>
 </body>

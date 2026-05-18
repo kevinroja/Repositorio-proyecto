@@ -4,12 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Soporte Técnico</title>
+  <!-- Íconos y fuentes -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <!-- Estilos generales de la app -->
   <link rel="stylesheet" href="../../css/kika.css">
 </head>
 <body class="page-support">
 
+<!-- ── TARJETA PRINCIPAL DE SOPORTE ────────────────────────────
+     Esta pantalla la ve cualquier usuario autenticado.
+     Tiene dos partes: la lista de sus tickets previos y el formulario para crear uno nuevo. -->
 <div class="support-card">
 
   <div class="support-card-header">
@@ -19,17 +24,23 @@
 
   <div class="support-card-body">
 
-    <!-- Lista de tickets del usuario actual -->
+    <!-- ── LISTA DE TICKETS ──────────────────────────────────────
+         Mientras carga muestra un spinner; cuando termina
+         lo reemplaza con las tarjetas de cada ticket. -->
     <div id="estadoCarga" style="text-align:center;padding:20px;font-size:13px;color:var(--text-sec)">
       <i class="ri-loader-4-line"></i> Cargando tickets...
     </div>
+    <!-- Aquí se inyectan las tarjetas de tickets desde JavaScript -->
     <div id="listaTickets" style="display:none"></div>
 
-    <!-- Formulario para crear un nuevo ticket -->
+    <!-- ── FORMULARIO NUEVO TICKET ───────────────────────────────
+         Permite al usuario reportar un problema eligiendo el módulo
+         afectado y escribiendo una descripción. -->
     <div class="ticket-form">
       <h3><i class="ri-add-circle-line"></i> Reportar nuevo problema</h3>
       <form id="frmTicket" novalidate>
 
+        <!-- Selector del módulo donde ocurre el problema -->
         <div style="margin-bottom:12px">
           <div class="field-label">Módulo afectado</div>
           <select class="field-input" id="modulo">
@@ -45,13 +56,16 @@
           </select>
         </div>
 
+        <!-- Área de texto obligatoria para describir el problema -->
         <div style="margin-bottom:12px">
           <div class="field-label">Descripción del problema *</div>
           <textarea class="field-input" id="descripcion" rows="3"
             placeholder="Describe con detalle el problema..."></textarea>
+          <!-- Mensaje de error si deja el campo vacío -->
           <div class="field-error" id="err-descripcion"></div>
         </div>
 
+        <!-- Botón para enviar el reporte -->
         <div class="form-actions" style="border-top:none;padding-top:0;margin-top:0">
           <button type="submit" class="btn btn-secondary">
             <i class="ri-send-plane-line"></i> Enviar reporte
@@ -64,13 +78,16 @@
   </div>
 </div>
 
+<!-- Contenedor de notificaciones emergentes (toasts) -->
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- Funciones globales compartidas (toast, getToken, requireAuth, etc.) -->
 <script src="../../js/kika.js"></script>
 <script>
-  /* Guard: cualquier rol autenticado puede reportar tickets */
+  // ── Seguridad: cualquier rol autenticado puede entrar, pero sin sesión no ──
   requireAuth();
 
-  /* ── Carga los tickets del usuario desde la API ── */
+  // ── Carga los tickets que el usuario actual tiene en la base de datos ──
   async function cargarTickets() {
     try {
       const res = await fetch(`${API_URL}/soporte/mis-tickets`, {
@@ -80,17 +97,19 @@
       if (!res.ok) throw new Error(data.message);
       renderTickets(data.data || []);
     } catch {
-      // Si la API aún no existe, mostrar lista vacía sin error visible
+      // Si la API falla o aún no existe, simplemente muestra la lista vacía
       renderTickets([]);
     }
   }
 
-  /* ── Renderiza la lista de tickets ─────────── */
+  // ── Dibuja cada ticket en la pantalla ──────────────────────────
+  // Recibe un arreglo de tickets y crea una tarjeta HTML por cada uno
   function renderTickets(tickets) {
     const lista = document.getElementById('listaTickets');
     lista.innerHTML = '';
 
     if (!tickets.length) {
+      // Mensaje cuando el usuario no tiene tickets aún
       lista.innerHTML = '<p style="text-align:center;color:var(--text-sec);font-size:13px;padding:12px 0">No tienes tickets reportados aún.</p>';
     } else {
       tickets.forEach(t => {
@@ -102,6 +121,7 @@
             <span>${t.fecha || ''}</span>
           </div>
           <p>${t.descripcion}</p>
+          <!-- Badge de color: verde si está resuelto, amarillo si sigue pendiente -->
           <span class="badge badge-${t.estado === 'resuelto' ? 'resolved' : 'pending'}">
             ${t.estado === 'resuelto' ? 'Resuelto' : 'Pendiente'}
           </span>`;
@@ -109,19 +129,20 @@
       });
     }
 
+    // Oculta el spinner y muestra la lista
     document.getElementById('estadoCarga').style.display = 'none';
     lista.style.display = 'block';
   }
 
-  /* ── Envía un nuevo ticket ──────────────────── */
+  // ── Envío del formulario de nuevo ticket ───────────────────────
   document.getElementById('frmTicket').addEventListener('submit', async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Evita recargar la página
 
     const desc    = document.getElementById('descripcion');
     const errEl   = document.getElementById('err-descripcion');
     const modulo  = document.getElementById('modulo').value || 'Sin especificar';
 
-    // Validación
+    // Validación: la descripción no puede estar vacía
     if (!desc.value.trim()) {
       desc.classList.add('error');
       errEl.textContent = 'Describe el problema';
@@ -132,6 +153,7 @@
     errEl.style.display = 'none';
 
     try {
+      // ── Envía el ticket a la API ──────────────────────────────
       const res = await fetch(`${API_URL}/soporte`, {
         method:  'POST',
         headers: {
@@ -143,16 +165,17 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
+      // Notificación de éxito, limpia el formulario y refresca la lista
       toast('Reporte enviado correctamente', 'success');
       e.target.reset();
-      await cargarTickets(); // Refrescar la lista con el nuevo ticket
+      await cargarTickets();
 
     } catch (err) {
       toast('Error al enviar: ' + err.message, 'error');
     }
   });
 
-  /* Cargar al abrir la página */
+  // Carga los tickets al abrir la página por primera vez
   cargarTickets();
 </script>
 </body>
