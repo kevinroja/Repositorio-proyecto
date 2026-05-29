@@ -22,9 +22,10 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 // ─── Rutas API ────────────────────────────────────────────
 app.use('/api/auth',        usuarioRoutes);
 app.use('/api/usuarios',    usuarioRoutes);
-app.use('/api/colecciones', coleccionRoutes);
 app.use('/api/prendas', prendaRoutes);
 app.use('/api/canales', canalRoutes);
+app.use('/api/colecciones', coleccionRoutes);
+app.use('/api/prendas',     require('./src/routes/prenda.routes'));
  
 // ─── Ruta de salud ────────────────────────────────────────
 app.get('/api/health', (req, res) => {

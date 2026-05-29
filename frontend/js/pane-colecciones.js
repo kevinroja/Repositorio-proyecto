@@ -48,14 +48,23 @@ async function cargarColecciones() {
 
     // Mapear al formato interno del frontend
     COLECCIONES = json.data.map(c => ({
-      id:        c.idCOLECCION,
-      name:      c.NombreColeccion,
-      season:    c.Temporada,
-      year:      c.Año,
-      createdAt: c.createdAt || ''
+      id:          c.idCOLECCION,
+      name:        c.NombreColeccion,
+      season:      c.Temporada,
+      year:        c.Año,
+      createdAt:   c.createdAt || '',
+      referencias: c.referencias || 0
     }));
 
     renderColecciones();
+
+    // Refrescar el selector de colecciones en el pane de telas si existe
+    const sel = document.getElementById('sel-col-cargar');
+    if (sel) {
+      const current = sel.value;
+      sel.innerHTML = '<option value="">📂 Seleccionar colección...</option>' +
+        COLECCIONES.map(c => `<option value="${c.id}"${c.id == current ? ' selected' : ''}>${c.name}</option>`).join('');
+    }
 
   } catch (err) {
     const wrap = document.getElementById('col-cards-wrap');
@@ -81,7 +90,7 @@ function renderColecciones() {
   }
 
   wrap.innerHTML = COLECCIONES.map(c => {
-    const refs = TELAS.filter(t => t.col === c.name).length;
+    const refs = c.referencias ?? TELAS.filter(t => t.colId == c.id).length;
     return `
       <div class="col-card">
         <div class="cc-name">${esc(c.name)}</div>

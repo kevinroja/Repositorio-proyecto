@@ -557,61 +557,27 @@ async function cargarTelasPorColeccion() {
     const json = await res.json();
     if (!json.ok) throw new Error(json.message);
 
-    TELAS   = TELAS.filter(t => t.colId != colId);
-    INSUMOS = INSUMOS.filter(i => !json.data.find(p => p.Referencia === i.ref));
+    TELAS = TELAS.filter(t => t.colId != colId);
 
     json.data.forEach(p => {
-      // ── Telas ──────────────────────────────────────────────
       TELAS.push({
         id:     ID(),
         ref:    p.Referencia,
         col:    colObj.name,
         colId:  colId,
-        taller: p.Costo_confeccion || 0,
+        taller: p.CostoTaller || 0,
         m:      (p.materiales || []).map(m => ({
-          mat:    m.Nombre  || '',
-          prov:   '',
-          mts:    m.Metros  || '',
-          precio: m.Precio  || ''
+          mat:    m.Nombre    || '',
+          prov:   m.Proveedor || '',
+          mts:    m.Mts       || '',
+          precio: m.Precio    || ''
         })).concat(emptyMats()).slice(0, 4),
         ajuste: 5,
         margen: 40
       });
-
-      // ── Insumos variables ──────────────────────────────────
-      const insVarBD = (p.insumosVar || []).map(i => ({
-        name:   i.PRENDA_INSUMOS_VARcol || '',
-        prov:   '',
-        cant:   i.Cantidad       || '',
-        precio: i.Precio_unitario || ''
-      }));
-      INSUMOS.push({
-        id:  ID(),
-        ref: p.Referencia,
-        ins: insVarBD.concat(emptyIns()).slice(0, 10)
-      });
     });
 
-    // ── Insumos fijos ─────────────────────────────────────────
-    try {
-      const resFijos = await fetch(`${API}/prendas/insumos-fijos`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const jf = await resFijos.json();
-      if (jf.ok && jf.data?.length) {
-        FIJOS = jf.data.map(f => ({
-          id:     ID(),
-          name:   f.Nombre,
-          precio: f.Precio_unitari || 0,
-          qty:    f.Cantidad       || 1
-        }));
-        renderFijosModal();
-        renderFijosSummary();
-      }
-    } catch(e) { console.warn('Insumos fijos:', e.message); }
-
     renderTelas();
-    renderInsumos();
     toast(`✓ ${json.data.length} referencias cargadas de "${colObj.name}"`);
 
   } catch (err) {

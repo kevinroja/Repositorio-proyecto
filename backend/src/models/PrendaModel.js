@@ -1,85 +1,116 @@
 const db = require('../config/db');
 
-class PrendaModel {
+// Nombre exacto de la FK en tabla material (25 chars, con A antes de _TELA)
+const FK_MAT = 'PRENDA_TELA_idPREND_TELA'.replace('PREND_', 'PRENDA_');
+// Valor real: PRENDA_TELA_idPREND_TELA → correcto es PRENDA_TELA_idPREND A _TELA
+// Definido explícitamente para evitar errores de tipeo:
+const FK_MATERIAL = 'PRENDA_TELA_idPREND' + 'A_TELA';  // PRENDA_TELA_idPREND A _TELA
 
-  static async guardarCompleto(data, usuarioId) {
-    const conn = await db.getConnection();
-    try {
-      await conn.beginTransaction();
+async function obtenerOCrearColeccion(nombreColeccion, temporada = null, año = null) {
+  const rows = await db.query(
+    'SELECT idCOLECCION FROM coleccion WHERE NombreColeccion = ?',
+    [nombreColeccion]
+  );
+  if (rows.length > 0) return rows[0].idCOLECCION;
 
-      // 1. Upsert prenda
-      const [existing] = await conn.execute(
-        `SELECT idPREND FROM prenda
-         WHERE Referencia = ? AND COLECCION_idCOLECCION = ?`,
-        [data.ref, data.colId]
-      );
-
-      let prendaId;
-      if (existing.length) {
-        prendaId = existing[0].idPREND;
-        await conn.execute(
-          `UPDATE prenda SET ttl_materiales=?, ttl_insumos_var=?, ttl_insumos_fijos=?,
-           Costo_confeccion=?, Costo_total=? WHERE idPREND=?`,
-          [data.ttlMat, data.ttlInsVar, data.ttlInsFijos,
-           data.taller, data.costoTotal, prendaId]
-        );
-      } else {
-        const [res] = await conn.execute(
-          `INSERT INTO prenda (Referencia, COLECCION_idCOLECCION, ttl_materiales,
-           ttl_insumos_var, ttl_insumos_fijos, Costo_confeccion, Costo_total)
-           VALUES (?,?,?,?,?,?,?)`,
-          [data.ref, data.colId, data.ttlMat, data.ttlInsVar,
-           data.ttlInsFijos, data.taller, data.costoTotal]
-        );
-        prendaId = res.insertId;
-      }
-
-      // 2. Borrar materiales anteriores y reinsertar
-      await conn.execute(`DELETE FROM prenda_tela WHERE PRENDA_idPREND=?`, [prendaId]);
-      for (let i = 0; i < data.materiales.length; i++) {
-        const m = data.materiales[i];
-        if (!m.Nombre) continue;
-        await conn.execute(
-          `INSERT INTO prenda_tela (Metros, Precio_Unitario, Costo_Total, Orden, PRENDA_idPREND)
-           VALUES (?,?,?,?,?)`,
-          [m.Mts, m.Precio, m.Mts * m.Precio, i + 1, prendaId]
-        );
-      }
-
-      // 3. Borrar insumos variables anteriores y reinsertar
-      await conn.execute(`DELETE FROM prenda_insumos_var WHERE PRENDA_idPREND=?`, [prendaId]);
-      for (let i = 0; i < data.insumos.length; i++) {
-        const ins = data.insumos[i];
-        if (!ins.name) continue;
-        await conn.execute(
-          `INSERT INTO prenda_insumos_var
-           (Cantidad, Precio_unitario, Costo_Total, Orden, PRENDA_INSUMOS_VARcol, PRENDA_idPREND)
-           VALUES (?,?,?,?,?,?)`,
-          [ins.cant, ins.precio, ins.cant * ins.precio, i + 1, ins.name, prendaId]
-        );
-      }
-
-      await conn.commit();
-      return { ok: true, prendaId };
-
-    } catch (err) {
-      await conn.rollback();
-      throw err;
-    } finally {
-      conn.release();
-    }
-  }
-
-  static async getByColeccion(colId) {
-    return db.query(
-      `SELECT p.*, pt.Metros, pt.Precio_Unitario, pt.Orden
-       FROM prenda p
-       LEFT JOIN prenda_tela pt ON pt.PRENDA_idPREND = p.idPREND
-       WHERE p.COLECCION_idCOLECCION = ?
-       ORDER BY p.Referencia, pt.Orden`,
-      [colId]
-    );
-  }
+  const result = await db.execute(
+    'INSERT INTO coleccion (NombreColeccion, Temporada, Año) VALUES (?, ?, ?)',
+    [nombreColeccion, temporada ?? null, año ?? null]
+  );
+  return result.insertId;
 }
 
-module.exports = PrendaModel;
+async function existeReferencia(ref, colId) {
+  const rows = await db.query(
+    'SELECT idPREND FROM prenda WHERE Referencia = ? AND COLECCION_idCOLECCION = ?',
+    [ref, colId]
+  );
+  return rows.length > 0;
+}
+
+async function guardarCompleto(body) {
+  const {
+    ref, colId, nombreColeccion,
+    taller = 0, ttlMat = 0, ttlInsVar = 0, ttlInsFijos = 0, costoTotal = 0,
+    materiales = [], insumos = [],
+  } = body;
+
+  let coleccionId = colId ? parseInt(colId) : null;
+  if (!coleccionId && nombreColeccion) {
+    coleccionId = await obtenerOCrearColeccion(nombreColeccion);
+  }
+
+  const prendaResult = await db.execute(
+    `INSERT INTO prenda
+       (Referencia, ttl_materiales, ttl_insumos_var, ttl_insumos_fijos,
+        Costo_confeccion, Costo_total, COLECCION_idCOLECCION)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [ref, ttlMat, ttlInsVar, ttlInsFijos, taller, costoTotal, coleccionId]
+  );
+  const prendaId = prendaResult.insertId;
+
+  for (let i = 0; i < materiales.length; i++) {
+    const mat = materiales[i];
+    const telaResult = await db.execute(
+      `INSERT INTO prenda_tela (Metros, Precio_Unitario, Costo_Total, Orden, PRENDA_idPREND)
+       VALUES (?, ?, ?, ?, ?)`,
+      [mat.Mts || 0, mat.Precio || 0, (mat.Mts || 0) * (mat.Precio || 0), i + 1, prendaId]
+    );
+    const telaId = telaResult.insertId;
+
+    await db.execute(
+      `INSERT INTO material (Nombre, Tipo, Precio, ${FK_MATERIAL}) VALUES (?, ?, ?, ?)`,
+      [mat.Nombre || '', mat.Tipo || null, mat.Precio || 0, telaId]
+    );
+  }
+
+  for (let i = 0; i < insumos.length; i++) {
+    const ins = insumos[i];
+    await db.execute(
+      `INSERT INTO prenda_insumos_var
+         (Cantidad, Precio_unitario, Costo_Total, Orden, PRENDA_INSUMOS_VARcol, PRENDA_idPREND)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [ins.cant || 0, ins.precio || 0, (ins.cant || 0) * (ins.precio || 0), i + 1, ins.name || null, prendaId]
+    );
+  }
+
+  return { prendaId, coleccionId };
+}
+
+async function getByColeccion(colId) {
+  return db.query(
+    'SELECT * FROM prenda WHERE COLECCION_idCOLECCION = ?', [colId]
+  );
+}
+
+async function getByColeccionConMateriales(colId) {
+  const prendas = await db.query(
+    'SELECT * FROM prenda WHERE COLECCION_idCOLECCION = ?', [colId]
+  );
+
+  for (const prenda of prendas) {
+    const telas = await db.query(
+      `SELECT pt.*, m.Nombre, m.Tipo, m.Precio
+       FROM prenda_tela pt
+       LEFT JOIN material m ON m.${FK_MATERIAL} = pt.idPREND_TELA
+       WHERE pt.PRENDA_idPREND = ?
+       ORDER BY pt.Orden`,
+      [prenda.idPREND]
+    );
+
+    const insumosVar = await db.query(
+      'SELECT * FROM prenda_insumos_var WHERE PRENDA_idPREND = ? ORDER BY Orden',
+      [prenda.idPREND]
+    );
+
+    prenda.materiales = telas;
+    prenda.insumosVar = insumosVar;
+  }
+
+  return prendas;
+}
+
+module.exports = {
+  guardarCompleto, getByColeccion, getByColeccionConMateriales,
+  existeReferencia, obtenerOCrearColeccion,
+};

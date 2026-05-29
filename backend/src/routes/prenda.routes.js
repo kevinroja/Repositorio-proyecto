@@ -7,7 +7,7 @@ const { authMiddleware, rolesMiddleware } = require('../middlewares/auth.middlew
 // Guardar prenda completa (telas + insumos variables)
 router.post('/guardar', authMiddleware, rolesMiddleware(1, 4), async (req, res) => {
   try {
-    const result = await Prenda.guardarCompleto(req.body, req.usuario.id);
+    const result = await Prenda.guardarCompleto(req.body);
     res.json({ ok: true, data: result });
   } catch (err) {
     console.error(err);
@@ -15,7 +15,19 @@ router.post('/guardar', authMiddleware, rolesMiddleware(1, 4), async (req, res) 
   }
 });
 
-// Obtener prendas de una colección
+// Obtener prendas de una colección con materiales (usado por el selector)
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    const { colId } = req.query;
+    if (!colId) return res.json({ ok: false, message: 'colId requerido' });
+    const data = await Prenda.getByColeccionConMateriales(colId);
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
+// Obtener prendas de una colección (ruta legacy)
 router.get('/coleccion/:colId', authMiddleware, async (req, res) => {
   try {
     const data = await Prenda.getByColeccion(req.params.colId);
@@ -35,7 +47,7 @@ router.post('/insumos-fijos', authMiddleware, rolesMiddleware(1, 4), async (req,
   }
 });
 
-// Cargar insumos fijos desde BD al iniciar
+// Cargar insumos fijos desde BD
 router.get('/insumos-fijos', authMiddleware, async (req, res) => {
   try {
     const data = await InsFijo.getAll();

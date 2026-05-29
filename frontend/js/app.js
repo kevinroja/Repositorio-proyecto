@@ -28,7 +28,7 @@ function readExcelFile(file, tab) {
   }
 
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     try {
       const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
 
@@ -37,7 +37,7 @@ function readExcelFile(file, tab) {
                      || wb.SheetNames[0];
       if (wb.Sheets[sheetTela]) {
         const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetTela], { header: 1, defval: '' });
-        importTelasRows(rows, sheetTela, tab === 'telas' ? statusEl : null);
+        await importTelasRows(rows, sheetTela, tab === 'telas' ? statusEl : null);
       }
 
       // ── Hoja INSUMOS variables ─────────────────────────────

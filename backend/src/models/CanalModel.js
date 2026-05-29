@@ -2,7 +2,14 @@ const db = require('../config/db');
 
 class CanalModel {
   static async getAll() {
-    return db.query(`SELECT * FROM canal_venta ORDER BY idCanal`);
+  const rows = await db.query(`
+    SELECT c.idCOLECCION, c.NombreColeccion, c.Temporada, c.Año,
+           COUNT(p.idPREND) AS referencias
+            FROM coleccion c
+           LEFT JOIN prenda p ON p.COLECCION_idCOLECCION = c.idCOLECCION
+          GROUP BY c.idCOLECCION, c.NombreColeccion, c.Temporada, c.Año
+    `);
+    return rows;
   }
 
   static async guardarTodos(canales) {
