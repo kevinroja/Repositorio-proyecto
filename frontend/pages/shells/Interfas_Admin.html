@@ -78,7 +78,7 @@
         </button>
         <div class="tn-dropdown">
           <!-- Opción visible para todos: reportar un problema -->
-          <a href="#" onclick="cargar('../soporte/Soporte.html',this)">
+          <a href="#" id="liSoporteUser" onclick="cargar('../soporte/Soporte.html',this)">
             <i class="ri-tools-line"></i> Soporte Técnico
           </a>
           <!-- Opción solo para Administrador: ver todos los tickets -->
@@ -157,6 +157,7 @@
     document.getElementById('secUsuarios').style.display    = 'flex';  // Muestra menú Usuarios
     document.getElementById('secCosteo').style.display      = 'flex';  // Muestra menú Costeo
     document.getElementById('liSoporteAdmin').style.display = 'block'; // Muestra opción Gestión Tickets
+    document.getElementById('liSoporteUser').style.display  = 'none';  // Oculta Soporte Técnico para admin
     document.getElementById('labelCosteo').textContent      = 'Administrador';
   }
 

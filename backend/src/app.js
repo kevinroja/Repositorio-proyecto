@@ -5,6 +5,7 @@ const path            = require('path');
 const usuarioRoutes   = require('./src/routes/usuario.routes');
 const coleccionRoutes = require('./src/routes/coleccionRoutes');
 const prendaRoutes    = require('./src/routes/prenda.routes');
+const soporteRoutes   = require('./src/routes/soporte.routes');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +19,7 @@ app.use('/api/auth',        usuarioRoutes);
 app.use('/api/usuarios',    usuarioRoutes);
 app.use('/api/colecciones', coleccionRoutes);
 app.use('/api/prendas',     prendaRoutes);
+app.use('/api/soporte',     soporteRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Servidor corriendo', timestamp: new Date() });

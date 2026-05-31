@@ -4,19 +4,77 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Soporte Técnico</title>
-  <!-- Íconos y fuentes -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-  <!-- Estilos generales de la app -->
   <link rel="stylesheet" href="../../css/kika.css">
+  <style>
+    /* ── Semáforo de prioridad ─────────────────────────────────── */
+    .priority-group {
+      display: flex; gap: 10px; margin-top: 6px;
+    }
+    .priority-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      gap: 6px; padding: 12px 8px; border-radius: 12px;
+      border: 2px solid transparent; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700;
+      transition: all .2s; background: var(--gray-lt); color: var(--text-sec);
+    }
+    .priority-btn .dot {
+      width: 22px; height: 22px; border-radius: 50%;
+      transition: box-shadow .2s; opacity: .35;
+    }
+    /* Urgente */
+    .priority-btn[data-p="Urgente"] .dot  { background: #ef4444; }
+    .priority-btn[data-p="Urgente"]:hover,
+    .priority-btn[data-p="Urgente"].active {
+      border-color: #ef4444; background: #ffeaea; color: #b91c1c;
+    }
+    .priority-btn[data-p="Urgente"].active .dot { opacity:1; box-shadow: 0 0 0 4px #fca5a5; }
+    /* Importante */
+    .priority-btn[data-p="Importante"] .dot { background: #f59e0b; }
+    .priority-btn[data-p="Importante"]:hover,
+    .priority-btn[data-p="Importante"].active {
+      border-color: #f59e0b; background: #fff8e1; color: #92400e;
+    }
+    .priority-btn[data-p="Importante"].active .dot { opacity:1; box-shadow: 0 0 0 4px #fde68a; }
+    /* Leve */
+    .priority-btn[data-p="Leve"] .dot { background: #22c55e; }
+    .priority-btn[data-p="Leve"]:hover,
+    .priority-btn[data-p="Leve"].active {
+      border-color: #22c55e; background: #eafaf1; color: #15803d;
+    }
+    .priority-btn[data-p="Leve"].active .dot { opacity:1; box-shadow: 0 0 0 4px #86efac; }
+
+    /* ── Tarjetas de tickets propios ───────────────────────────── */
+    .my-ticket {
+      border: 1.5px solid var(--gray-mid); border-radius: 12px;
+      padding: 14px 16px; margin-bottom: 10px;
+      display: flex; gap: 12px; align-items: flex-start;
+      transition: box-shadow .2s;
+    }
+    .my-ticket:hover { box-shadow: 0 2px 12px rgba(26,107,124,.08); }
+    .priority-dot {
+      width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; flex-shrink: 0;
+    }
+    .dot-Urgente   { background: #ef4444; box-shadow: 0 0 0 3px #fca5a540; }
+    .dot-Importante{ background: #f59e0b; box-shadow: 0 0 0 3px #fde68a40; }
+    .dot-Leve      { background: #22c55e; box-shadow: 0 0 0 3px #86efac40; }
+    .ticket-ref    { font-size: 11px; color: var(--text-sec); margin-top: 2px; }
+    .badge-p {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 700;
+    }
+    .bp-Urgente    { background:#ffeaea; color:#b91c1c; }
+    .bp-Importante { background:#fff8e1; color:#92400e; }
+    .bp-Leve       { background:#eafaf1; color:#15803d; }
+    .bs-Pendiente  { background:#fff8e1; color:#92400e; }
+    .bs-proceso    { background:#e6f4f7; color:var(--teal); }
+    .bs-Resuelto   { background:#eafaf1; color:#15803d; }
+  </style>
 </head>
 <body class="page-support">
 
-<!-- ── TARJETA PRINCIPAL DE SOPORTE ────────────────────────────
-     Esta pantalla la ve cualquier usuario autenticado.
-     Tiene dos partes: la lista de sus tickets previos y el formulario para crear uno nuevo. -->
 <div class="support-card">
-
   <div class="support-card-header">
     <h2><i class="ri-customer-service-2-line"></i> Soporte Técnico</h2>
     <p>Mis tickets reportados</p>
@@ -24,23 +82,18 @@
 
   <div class="support-card-body">
 
-    <!-- ── LISTA DE TICKETS ──────────────────────────────────────
-         Mientras carga muestra un spinner; cuando termina
-         lo reemplaza con las tarjetas de cada ticket. -->
+    <!-- Lista de mis tickets -->
     <div id="estadoCarga" style="text-align:center;padding:20px;font-size:13px;color:var(--text-sec)">
       <i class="ri-loader-4-line"></i> Cargando tickets...
     </div>
-    <!-- Aquí se inyectan las tarjetas de tickets desde JavaScript -->
     <div id="listaTickets" style="display:none"></div>
 
-    <!-- ── FORMULARIO NUEVO TICKET ───────────────────────────────
-         Permite al usuario reportar un problema eligiendo el módulo
-         afectado y escribiendo una descripción. -->
+    <!-- Formulario nuevo ticket -->
     <div class="ticket-form">
       <h3><i class="ri-add-circle-line"></i> Reportar nuevo problema</h3>
       <form id="frmTicket" novalidate>
 
-        <!-- Selector del módulo donde ocurre el problema -->
+        <!-- Módulo -->
         <div style="margin-bottom:12px">
           <div class="field-label">Módulo afectado</div>
           <select class="field-input" id="modulo">
@@ -56,96 +109,112 @@
           </select>
         </div>
 
-        <!-- Área de texto obligatoria para describir el problema -->
+        <!-- Prioridad — semáforo -->
+        <div style="margin-bottom:14px">
+          <div class="field-label">Prioridad</div>
+          <div class="priority-group" id="priorityGroup">
+            <button type="button" class="priority-btn" data-p="Leve" onclick="selPrioridad(this)">
+              <div class="dot"></div>
+              <span>🟢 Leve</span>
+            </button>
+            <button type="button" class="priority-btn" data-p="Importante" onclick="selPrioridad(this)">
+              <div class="dot"></div>
+              <span>🟡 Importante</span>
+            </button>
+            <button type="button" class="priority-btn active" data-p="Urgente" onclick="selPrioridad(this)">
+              <div class="dot"></div>
+              <span>🔴 Urgente</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Descripción -->
         <div style="margin-bottom:12px">
           <div class="field-label">Descripción del problema *</div>
           <textarea class="field-input" id="descripcion" rows="3"
             placeholder="Describe con detalle el problema..."></textarea>
-          <!-- Mensaje de error si deja el campo vacío -->
           <div class="field-error" id="err-descripcion"></div>
         </div>
 
-        <!-- Botón para enviar el reporte -->
         <div class="form-actions" style="border-top:none;padding-top:0;margin-top:0">
           <button type="submit" class="btn btn-secondary">
             <i class="ri-send-plane-line"></i> Enviar reporte
           </button>
         </div>
-
       </form>
     </div>
 
   </div>
 </div>
 
-<!-- Contenedor de notificaciones emergentes (toasts) -->
 <div class="toast-container" id="toastContainer"></div>
-
-<!-- Funciones globales compartidas (toast, getToken, requireAuth, etc.) -->
 <script src="../../js/kika.js"></script>
 <script>
-  // ── Seguridad: cualquier rol autenticado puede entrar, pero sin sesión no ──
   requireAuth();
 
-  // ── Carga los tickets que el usuario actual tiene en la base de datos ──
+  let prioridadSeleccionada = 'Urgente';
+
+  function selPrioridad(btn) {
+    document.querySelectorAll('.priority-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    prioridadSeleccionada = btn.dataset.p;
+  }
+
   async function cargarTickets() {
     try {
-      const res = await fetch(`${API_URL}/soporte/mis-tickets`, {
+      const res  = await fetch(`${API_URL}/soporte/mis-tickets`, {
         headers: { 'Authorization': `Bearer ${getToken()}` }
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      renderTickets(data.data || []);
-    } catch {
-      // Si la API falla o aún no existe, simplemente muestra la lista vacía
-      renderTickets([]);
-    }
+      renderTickets(data.ok ? data.data : []);
+    } catch { renderTickets([]); }
   }
 
-  // ── Dibuja cada ticket en la pantalla ──────────────────────────
-  // Recibe un arreglo de tickets y crea una tarjeta HTML por cada uno
   function renderTickets(tickets) {
     const lista = document.getElementById('listaTickets');
-    lista.innerHTML = '';
 
     if (!tickets.length) {
-      // Mensaje cuando el usuario no tiene tickets aún
       lista.innerHTML = '<p style="text-align:center;color:var(--text-sec);font-size:13px;padding:12px 0">No tienes tickets reportados aún.</p>';
     } else {
-      tickets.forEach(t => {
-        const div = document.createElement('div');
-        div.className = 'ticket';
-        div.innerHTML = `
-          <div class="ticket-meta">
-            <span class="user"><i class="ri-user-line"></i> ${t.usuario || 'Tú'}</span>
-            <span>${t.fecha || ''}</span>
-          </div>
-          <p>${t.descripcion}</p>
-          <!-- Badge de color: verde si está resuelto, amarillo si sigue pendiente -->
-          <span class="badge badge-${t.estado === 'resuelto' ? 'resolved' : 'pending'}">
-            ${t.estado === 'resuelto' ? 'Resuelto' : 'Pendiente'}
-          </span>`;
-        lista.appendChild(div);
-      });
+      lista.innerHTML = tickets.map(t => {
+        const p = t.prioridad || 'Leve';
+        const fecha = t.fecha_creacion
+          ? new Date(t.fecha_creacion).toLocaleDateString('es-CO',
+              { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+          : '—';
+        const esBadge = t.estado === 'En proceso' ? 'bs-proceso'
+                      : t.estado === 'Resuelto'   ? 'bs-Resuelto' : 'bs-Pendiente';
+        return `
+          <div class="my-ticket">
+            <div class="priority-dot dot-${p}"></div>
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+                <div style="font-weight:700;font-size:13px;color:var(--navy)">${t.asunto || t.modulo || 'Ticket'}</div>
+                <div style="display:flex;gap:5px;flex-shrink:0">
+                  <span class="badge-p bp-${p}">● ${p}</span>
+                  <span class="badge-p ${esBadge}">${t.estado}</span>
+                </div>
+              </div>
+              <div class="ticket-ref"><i class="ri-time-line"></i> ${fecha}</div>
+              <p style="font-size:12px;color:var(--text);margin:6px 0 0">${t.descripcion}</p>
+            </div>
+          </div>`;
+      }).join('');
     }
 
-    // Oculta el spinner y muestra la lista
     document.getElementById('estadoCarga').style.display = 'none';
     lista.style.display = 'block';
   }
 
-  // ── Envío del formulario de nuevo ticket ───────────────────────
   document.getElementById('frmTicket').addEventListener('submit', async (e) => {
-    e.preventDefault(); // Evita recargar la página
+    e.preventDefault();
+    const desc   = document.getElementById('descripcion');
+    const errEl  = document.getElementById('err-descripcion');
+    const modulo = document.getElementById('modulo').value || 'Sin especificar';
 
-    const desc    = document.getElementById('descripcion');
-    const errEl   = document.getElementById('err-descripcion');
-    const modulo  = document.getElementById('modulo').value || 'Sin especificar';
-
-    // Validación: la descripción no puede estar vacía
     if (!desc.value.trim()) {
       desc.classList.add('error');
-      errEl.textContent = 'Describe el problema';
+      errEl.textContent  = 'Describe el problema';
       errEl.style.display = 'block';
       return;
     }
@@ -153,29 +222,28 @@
     errEl.style.display = 'none';
 
     try {
-      // ── Envía el ticket a la API ──────────────────────────────
-      const res = await fetch(`${API_URL}/soporte`, {
+      const res  = await fetch(`${API_URL}/soporte`, {
         method:  'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': `Bearer ${getToken()}`
-        },
-        body: JSON.stringify({ modulo, descripcion: desc.value.trim() })
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({
+          modulo,
+          descripcion: desc.value.trim(),
+          prioridad:   prioridadSeleccionada
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
-
-      // Notificación de éxito, limpia el formulario y refresca la lista
       toast('Reporte enviado correctamente', 'success');
       e.target.reset();
+      prioridadSeleccionada = 'Urgente';
+      document.querySelectorAll('.priority-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-p="Urgente"]').classList.add('active');
       await cargarTickets();
-
     } catch (err) {
       toast('Error al enviar: ' + err.message, 'error');
     }
   });
 
-  // Carga los tickets al abrir la página por primera vez
   cargarTickets();
 </script>
 </body>

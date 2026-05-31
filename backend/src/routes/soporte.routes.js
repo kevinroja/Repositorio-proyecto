@@ -1,36 +1,64 @@
-const express            = require('express');
-const router             = express.Router();
-const SoporteController  = require('../controllers/SoporteController');
+const express  = require('express');
+const router   = express.Router();
+const Soporte  = require('../models/SoporteModel');
 const { authMiddleware, rolesMiddleware } = require('../middlewares/auth.middleware');
 
-// ============================================
-// RUTAS: /api/soporte
-// ============================================
+// Crear ticket (cualquier usuario autenticado)
+router.post('/', authMiddleware, async (req, res) => {
+  try {
+    const { modulo, descripcion, prioridad } = req.body;
+    if (!descripcion?.trim())
+      return res.status(400).json({ ok: false, message: 'La descripción es requerida' });
 
-// Admin — ver todos los tickets
-router.get('/',
-    authMiddleware,
-    rolesMiddleware(4),
-    SoporteController.getAll
-);
+    const id = await Soporte.crear({
+      modulo, descripcion, prioridad,
+      usuarioId: req.usuario.id
+    });
+    res.json({ ok: true, data: { idSOPORTE: id } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
 
-// Cualquier usuario — ver sus propios tickets
-router.get('/mis-solicitudes',
-    authMiddleware,
-    SoporteController.getMisSolicitudes
-);
+// Mis tickets (usuario autenticado)
+router.get('/mis-tickets', authMiddleware, async (req, res) => {
+  try {
+    const data = await Soporte.getMisTickets(req.usuario.id);
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
 
-// Cualquier usuario — crear ticket (excepto admin rol 4)
-router.post('/',
-    authMiddleware,
-    SoporteController.crear
-);
+// Todos los tickets (solo admin)
+router.get('/', authMiddleware, rolesMiddleware(4), async (req, res) => {
+  try {
+    const data = await Soporte.getAll();
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
 
-// Admin — cambiar estado del ticket
-router.put('/:id/estado',
-    authMiddleware,
-    rolesMiddleware(4),
-    SoporteController.cambiarEstado
-);
+// Cambiar estado — Resuelto elimina el ticket
+router.put('/:id/estado', authMiddleware, rolesMiddleware(4), async (req, res) => {
+  try {
+    const { estado } = req.body;
+    const validos = ['Pendiente', 'En proceso', 'Resuelto'];
+    if (!validos.includes(estado))
+      return res.status(400).json({ ok: false, message: 'Estado inválido' });
+
+    const result = await Soporte.cambiarEstado(+req.params.id, estado);
+    res.json({
+      ok: true,
+      message: result.eliminado
+        ? 'Ticket resuelto y eliminado'
+        : `Estado actualizado a "${estado}"`
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
 
 module.exports = router;
