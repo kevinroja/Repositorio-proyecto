@@ -110,7 +110,39 @@ async function getByColeccionConMateriales(colId) {
   return prendas;
 }
 
+async function buscarPorNombre(q) {
+  const prendas = await db.query(
+    `SELECT p.*, c.NombreColeccion, c.Temporada, c.Año
+     FROM prenda p
+     LEFT JOIN coleccion c ON c.idCOLECCION = p.COLECCION_idCOLECCION
+     WHERE p.Referencia LIKE ?
+     ORDER BY p.idPREND DESC`,
+    [`%${q}%`]
+  );
+
+  for (const prenda of prendas) {
+    const telas = await db.query(
+      `SELECT pt.*, m.Nombre, m.Tipo, m.Precio
+       FROM prenda_tela pt
+       LEFT JOIN material m ON m.${FK_MATERIAL} = pt.idPREND_TELA
+       WHERE pt.PRENDA_idPREND = ?
+       ORDER BY pt.Orden`,
+      [prenda.idPREND]
+    );
+
+    const insumosVar = await db.query(
+      'SELECT * FROM prenda_insumos_var WHERE PRENDA_idPREND = ? ORDER BY Orden',
+      [prenda.idPREND]
+    );
+
+    prenda.materiales = telas;
+    prenda.insumosVar = insumosVar;
+  }
+
+  return prendas;
+}
+
 module.exports = {
   guardarCompleto, getByColeccion, getByColeccionConMateriales,
-  existeReferencia, obtenerOCrearColeccion,
+  existeReferencia, obtenerOCrearColeccion, buscarPorNombre,
 };

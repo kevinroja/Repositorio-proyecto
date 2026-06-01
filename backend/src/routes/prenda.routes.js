@@ -15,6 +15,20 @@ router.post('/guardar', authMiddleware, rolesMiddleware(1, 4), async (req, res) 
   }
 });
 
+// Buscar prendas por nombre sin importar la colección
+router.get('/buscar', authMiddleware, async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim().length < 2)
+      return res.json({ ok: false, message: 'Escribe al menos 2 caracteres' });
+
+    const data = await Prenda.buscarPorNombre(q.trim());
+    res.json({ ok: true, data });
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
 // Obtener prendas de una colección con materiales (usado por el selector)
 router.get('/', authMiddleware, async (req, res) => {
   try {
