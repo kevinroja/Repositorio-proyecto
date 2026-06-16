@@ -1,61 +1,64 @@
 const db = require('../config/db');
 
+// ── CanalModel ────────────────────────────────────────────────────────
+// Gestiona la tabla canal_venta.
+// Según el prompt v3: idCanal, Nombre, Codigo
+
 class CanalModel {
+
   static async getAll() {
-  const rows = await db.query(`
-    SELECT c.idCOLECCION, c.NombreColeccion, c.Temporada, c.Año,
-           COUNT(p.idPREND) AS referencias
-            FROM coleccion c
-           LEFT JOIN prenda p ON p.COLECCION_idCOLECCION = c.idCOLECCION
-          GROUP BY c.idCOLECCION, c.NombreColeccion, c.Temporada, c.Año
+    return db.query(`
+      SELECT idCanal, Nombre, Codigo
+      FROM canal_venta
+      ORDER BY idCanal ASC
     `);
-    return rows;
   }
 
   static async guardarTodos(canales) {
-    const conn = await db.getConnection();
-    try {
-      await conn.beginTransaction();
+    if (!Array.isArray(canales)) throw new Error('canales debe ser un array');
 
-      for (const c of canales) {
-        const [ex] = await conn.execute(
-          `SELECT idCanal FROM canal_venta WHERE Nombre=?`, [c.name]
+    for (const c of canales) {
+      if (!c.name) continue;
+      const codigo = (c.code || c.name).substring(0, 45);
+
+      const existing = await db.query(
+        'SELECT idCanal FROM canal_venta WHERE Nombre = ?', [c.name]
+      );
+
+      if (existing.length) {
+        await db.execute(
+          'UPDATE canal_venta SET Codigo = ? WHERE idCanal = ?',
+          [codigo, existing[0].idCanal]
         );
-
-        // Upsert precio_canal
-        const [pcRes] = await conn.execute(
-          `INSERT INTO precio_canal
-           (Kv_markup, Ajuste_USD, Margen_extra, Sub_total1, Sub_total2, Precio_venta_cop, Precio_venta_USD)
-           VALUES (?,?,?,?,?,?,?)
-           ON DUPLICATE KEY UPDATE
-           Kv_markup=VALUES(Kv_markup), Ajuste_USD=VALUES(Ajuste_USD)`,
-          [c.params.rtMkup, 0, 0, 0, 0, '0', '0']
+      } else {
+        await db.execute(
+          'INSERT INTO canal_venta (Nombre, Codigo) VALUES (?, ?)',
+          [c.name, codigo]
         );
-        const precioId = pcRes.insertId || pcRes[0]?.idPrecio_Canal;
-
-        if (ex.length) {
-          await conn.execute(
-            `UPDATE canal_venta SET Nombre=?, Codigo=?, Precio_Canal_idPrecio_Canal=?
-             WHERE idCanal=?`,
-            [c.name, c.name.substring(0, 10), precioId, ex[0].idCanal]
-          );
-        } else {
-          await conn.execute(
-            `INSERT INTO canal_venta (Nombre, Codigo, Precio_Canal_idPrecio_Canal)
-             VALUES (?,?,?)`,
-            [c.name, c.name.substring(0, 10), precioId]
-          );
-        }
       }
-
-      await conn.commit();
-      return { ok: true };
-    } catch (err) {
-      await conn.rollback();
-      throw err;
-    } finally {
-      conn.release();
     }
+
+    return { ok: true };
+  }
+
+  static async crear({ Nombre, Codigo }) {
+    if (!Nombre) throw new Error('El nombre del canal es obligatorio');
+    const result = await db.execute(
+      'INSERT INTO canal_venta (Nombre, Codigo) VALUES (?, ?)',
+      [Nombre, Codigo || Nombre.substring(0, 45)]
+    );
+    return result.insertId;
+  }
+
+  static async actualizar(id, { Nombre, Codigo }) {
+    await db.execute(
+      'UPDATE canal_venta SET Nombre = ?, Codigo = ? WHERE idCanal = ?',
+      [Nombre, Codigo || Nombre.substring(0, 45), id]
+    );
+  }
+
+  static async eliminar(id) {
+    await db.execute('DELETE FROM canal_venta WHERE idCanal = ?', [id]);
   }
 }
 

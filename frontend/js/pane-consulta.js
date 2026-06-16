@@ -14,7 +14,15 @@
 
 // ── Helpers de conexión (mismo patrón que pane-colecciones.js) ──
 const CQ_API      = window.parent?.API_URL || 'http://localhost:3000/api';
-const cqGetToken  = () => window.parent?.kikaToken || sessionStorage.getItem('kika_token');
+const cqGetToken  = () => {
+  const t = window.parent?.kikaToken || sessionStorage.getItem('kika_token');
+  return (t === 'consulta_guest') ? null : t;
+};
+// Construye los headers de autorización solo si hay token real
+const cqHeaders   = () => {
+  const t = cqGetToken();
+  return t ? { 'Authorization': `Bearer ${t}` } : {};
+};
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -105,7 +113,7 @@ async function cqCargarColecciones() {
     // Si las colecciones ya están en memoria, usarlas directamente
     if (!COLECCIONES.length) {
       const res  = await fetch(`${CQ_API}/colecciones`, {
-        headers: { 'Authorization': `Bearer ${cqGetToken()}` }
+        headers: cqHeaders()
       });
       const json = await res.json();
       if (!json.ok) throw new Error(json.message);
@@ -166,24 +174,24 @@ async function cqCargarPrendas(colId) {
   try {
     // ── 1. Cargar prendas con materiales ───────────────────────
     const resPrendas = await fetch(`${CQ_API}/prendas?colId=${colId}`, {
-      headers: { 'Authorization': `Bearer ${cqGetToken()}` }
+      headers: cqHeaders()
     });
     const jsonPrendas = await resPrendas.json();
     if (!jsonPrendas.ok) throw new Error(jsonPrendas.message);
 
     // ── 2. Cargar insumos fijos globales ───────────────────────
     const resFijos = await fetch(`${CQ_API}/prendas/insumos-fijos`, {
-      headers: { 'Authorization': `Bearer ${cqGetToken()}` }
+      headers: cqHeaders()
     });
     const jsonFijos = await resFijos.json();
 
     // Mapear insumos fijos al formato interno
     if (jsonFijos.ok && jsonFijos.data?.length) {
       FIJOS = jsonFijos.data.map(f => ({
-        id:     f.idInsumoFijo  || f.idINSUMO_FIJO || f.id || ID(),
-        name:   f.Nombre        || f.nombre        || f.name  || '',
-        precio: D(f.Precio      || f.precio        || 0),
-        qty:    D(f.Cantidad    || f.cantidad       || f.qty || 1),
+        id:     f.idINSUMOS_FIJO_GLOVALES || ID(),
+        name:   f.Nombre   || '',
+        precio: D(f.Precio_unitari || 0),   // typo original conservado en BD
+        qty:    D(f.Cantidad       || 1),
       }));
     }
 
@@ -200,7 +208,7 @@ async function cqCargarPrendas(colId) {
         mat:    mats[i]?.Nombre         || '',
         prov:   mats[i]?.Tipo           || '',   // Tipo se usa como proveedor/tipo de tela
         mts:    D(mats[i]?.Metros       || 0),
-        precio: D(mats[i]?.Precio_Unitario || mats[i]?.Precio || 0),
+        precio: D(mats[i]?.Precio_Unitario || 0),
       }));
 
       TELAS.push({
@@ -301,7 +309,7 @@ async function ejecutarBusquedaConsulta() {
 
   try {
     const res  = await fetch(`${CQ_API}/prendas/buscar?q=${encodeURIComponent(texto)}`, {
-      headers: { 'Authorization': `Bearer ${cqGetToken()}` }
+      headers: cqHeaders()
     });
     const json = await res.json();
     if (!json.ok) throw new Error(json.message);
@@ -317,7 +325,7 @@ async function ejecutarBusquedaConsulta() {
         mat:    mats[i]?.Nombre            || '',
         prov:   mats[i]?.Tipo              || '',
         mts:    D(mats[i]?.Metros          || 0),
-        precio: D(mats[i]?.Precio_Unitario || mats[i]?.Precio || 0),
+        precio: D(mats[i]?.Precio_Unitario || 0),
       }));
 
       TELAS.push({

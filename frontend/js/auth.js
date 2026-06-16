@@ -79,15 +79,7 @@ function buildUI() {
   document.getElementById('content').innerHTML =
     TAB_DEFS.map(t => `<div class="pane" id="pane-${t.id}"></div>`).join('');
 
-  // ── Construir panes ───────────────────────────────────────
-  buildPaneColecciones();
-  buildPaneMateria();
-  buildPaneConsolidado();
-  buildPaneCanales();
-  buildPaneConsulta();
-  buildPaneHistorial();
-
-  // ── Activar primer tab permitido ─────────────────────────
+  // ── Activar primer tab permitido (goTab construye el pane) ──
   const firstId  = role.tabs[0];
   const firstBtn = document.getElementById('tab-' + firstId);
   if (firstBtn) goTab(firstId, firstBtn);
@@ -102,6 +94,9 @@ function goTab(id, btn) {
   const role = ROLES[currentUser.role];
   if (!role.tabs.includes(id)) return;
 
+  // Evitar doble construcción si el tab ya está activo
+  if (activeTab === id) return;
+
   document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
 
@@ -111,10 +106,11 @@ function goTab(id, btn) {
 
   activeTab = id;
 
-  if (id === 'materia')     { renderTelas(); renderInsumos(); }
-  if (id === 'consolidado') recalc();
-  if (id === 'historial')   renderHistorial();
-  if (id === 'colecciones') renderColecciones();
-  if (id === 'canales')     renderCanales();
-  if (id === 'consulta')    renderConsulta();
+  // Construir el pane primero (el pane construye su propio toolbar internamente)
+  if (id === 'materia')     { buildPaneMateria(); }
+  if (id === 'consolidado') { buildPaneConsolidado(); recalc(); }
+  if (id === 'historial')   { buildPaneHistorial(); }
+  if (id === 'colecciones') { buildPaneColecciones(); }
+  if (id === 'canales')     { buildPaneCanales(); }
+  if (id === 'consulta')    { buildPaneConsulta(); }
 }

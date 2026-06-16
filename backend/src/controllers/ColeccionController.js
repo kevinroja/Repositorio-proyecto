@@ -51,17 +51,18 @@ class ColeccionController {
     }
 
    // DELETE /api/colecciones/:id
-    static async eliminar(req, res) {
-        try {
-            await ColeccionService.eliminar(req.params.id, req.usuario.id);
-            return res.status(200).json({
-                ok: true,
-                message: 'Colección eliminada'
-            });
-        } catch (err) {
-            return res.status(400).json({ ok: false, message: err.message });
-        }
+static async eliminar(req, res) {
+    try {
+        const resultado = await ColeccionService.eliminar(req.params.id, req.usuario.id);
+        const msg = resultado.prendasEliminadas > 0
+            ? `Colección eliminada junto con ${resultado.prendasEliminadas} referencia(s) asociada(s)`
+            : 'Colección eliminada';
+        return res.status(200).json({ ok: true, message: msg });
+    } catch (err) {
+        return res.status(400).json({ ok: false, message: err.message });
     }
+}
+
 
     // GET /api/colecciones/:id/prendas
     static async getPrendas(req, res) {

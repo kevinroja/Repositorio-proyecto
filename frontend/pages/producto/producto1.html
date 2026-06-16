@@ -218,23 +218,18 @@
   // ── Inicialización: toma los datos de sesión del shell padre ──
   // Este módulo no tiene login propio; recibe todo desde Interfas_Admin.html
   (function initFromKika() {
-
-    const par     = window.parent;
-    const token   = par?.kikaToken   || sessionStorage.getItem('kika_token');
-    const usuario = par?.kikaUsuario || JSON.parse(sessionStorage.getItem('kika_usuario') || 'null');
-    const rolKika = parseInt(par?.kikaRol) || parseInt(sessionStorage.getItem('kika_rol') || '0');
-
-    // Si el padre tenía el token real, sincronizarlo al sessionStorage.
-    // Esto evita que una sesión anterior con 'consulta_guest' (valor legacy)
-    // quede almacenada y bloquee futuras cargas del módulo.
-    if (par?.kikaToken && par.kikaToken !== 'consulta_guest') {
-      sessionStorage.setItem('kika_token',   par.kikaToken);
-      sessionStorage.setItem('kika_usuario', JSON.stringify(par.kikaUsuario));
-      sessionStorage.setItem('kika_rol',     String(par.kikaRol));
-    }
-
-    // Sin sesión válida o con token legacy → pantalla de error
-    if (!token || !usuario || token === 'consulta_guest') {
+  
+    const parent   = window.parent;
+    // Intenta obtener token y datos del usuario desde la ventana padre (iframe)
+    // Si no existen ahí, los busca en el sessionStorage del navegador
+    const token    = parent?.kikaToken    || sessionStorage.getItem('kika_token');
+    const usuario  = parent?.kikaUsuario  || JSON.parse(sessionStorage.getItem('kika_usuario') || 'null');
+    const rolKika  = parseInt(parent?.kikaRol) || parseInt(sessionStorage.getItem('kika_rol') || '0');
+  
+    // Si no hay sesión, muestra un mensaje de error y detiene la ejecución
+    // Excepción: el token 'consulta_guest' es válido para el rol 3 (Consulta)
+    const esGuestConsulta = token === 'consulta_guest' && rolKika === 3;
+    if ((!token || !usuario) && !esGuestConsulta) {
       document.body.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;
                     justify-content:center;height:100vh;gap:16px;
@@ -245,13 +240,13 @@
         </div>`;
       return;
     }
-
-    // Traduce rol numérico Kika → nombre interno del módulo de costeo
-    // Kika: 4=admin, 1=materia_prima, 2=finanzas, 3=consulta
+  
+    // Traduce el número de rol de Kika al nombre interno que usa el módulo de costeo
+    // Kika: 4=admin, 1=materia_prima, 2=finanzas
     const ROL_MAP   = { 4: 'admin', 1: 'materia_prima', 2: 'finanzas', 3: 'consulta' };
     const rolCosteo = ROL_MAP[rolKika];
-
-    // Rol no reconocido → acceso denegado
+  
+    // Si el rol no está en el mapa (ej. rol 3 = Consulta), muestra error de acceso
     if (!rolCosteo) {
       document.body.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;
@@ -266,21 +261,21 @@
         </div>`;
       return;
     }
-
-    // Inyectar usuario en el estado global del módulo
+  
+    // Guarda los datos del usuario en la variable global del módulo
     currentUser = {
       name:  usuario.Nombre,
       role:  rolCosteo,
       token: token,
     };
-
+  
     // Construye la interfaz (pestañas y contenido según el rol)
     buildUI();
-
+  
     // Registra en el historial que este usuario accedió al módulo
     addHist('Accedió al módulo de Costeo', 'Login',
       `${usuario.Nombre} (Rol Kika: ${rolKika})`);
-
+  
   })();
 
   // Abre directamente la pestaña indicada en la URL

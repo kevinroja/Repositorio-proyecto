@@ -5,30 +5,30 @@
  *   'admin'         ← Kika rol 4 (Administrador) — acceso total
  *   'materia_prima' ← Kika rol 1 (Materia Prima)  — telas, insumos, colecciones
  *   'finanzas'      ← Kika rol 2 (Costeo)          — consolidado, canales, consulta
- *
- * El rol 3 (Consulta) de Kika NO tiene acceso a este módulo.
+ *   'consulta'      ← Kika rol 3 (Consulta)         — solo lectura, sin credenciales
  */
 
 // ── Sesión y navegación ──────────────────────────────────────
-let currentUser  = null;  // { name, role, token } — inyectado desde Costeo.html
-let activeTab    = null;
-let editingColId = null;
+var currentUser  = null;  // { name, role, token } — inyectado desde Costeo.html
+var activeTab    = null;
+var editingColId = null;
 
 // ── Estado del Módulo Consulta ───────────────────────────────
-let consultaSelected = null;
-let consultaQuery    = '';
+var consultaSelected = null;
+var consultaQuery    = '';
 
 // ── Generador de IDs únicos en memoria ───────────────────────
-let _uid = 1;
+var _uid = 1;
 const ID = () => '_' + (_uid++);
 
 // ── Base de datos en memoria ─────────────────────────────────
-let COLECCIONES = [];
-let TELAS       = [];
-let INSUMOS     = [];
-let FIJOS       = [];
-let CANALES     = [];
-let HISTORIAL   = [];
+// var (no let) para que sean accesibles en window desde cualquier script
+var COLECCIONES = [];
+var TELAS       = [];
+var INSUMOS     = [];
+var FIJOS       = [];
+var CANALES     = [];
+var HISTORIAL   = [];
 
 // ── Roles internos del módulo de Costeo ──────────────────────
 const ROLES = {
@@ -46,6 +46,11 @@ const ROLES = {
     label: 'Costeo / Finanzas',
     color: '#93C5FD',
     tabs: ['colecciones','consolidado','canales','consulta','historial']
+  },
+  consulta: {
+    label: 'Consulta',
+    color: '#A78BFA',
+    tabs: ['consulta']
   },
 };
 

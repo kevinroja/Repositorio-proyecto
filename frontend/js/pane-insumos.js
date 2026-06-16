@@ -147,10 +147,51 @@ function renderFijosSummary() {
  * Construye el HTML completo del pane de Insumos.
  * Incluye zona de carga Excel, banner de fijos y grilla de 10 columnas.
  */
+/**
+ * Inyecta el toolbar de Insumos en #module-toolbar.
+ * Separado de buildPaneInsumos para poder llamarlo sin reconstruir el pane.
+ */
+function buildToolbarInsumos() {
+  const tbSlot = document.getElementById('module-toolbar');
+  if (!tbSlot) return;
+  const edit = canEdit('insumos');
+  tbSlot.innerHTML = `
+    <div id="toolbar-insumos" style="
+      width:100%;box-sizing:border-box;height:40px;z-index:200;
+      background:var(--g1,#1B4332);
+      border-bottom:2px solid var(--g2,#2D6A4F);
+      box-shadow:0 2px 8px rgba(0,0,0,.18);
+      display:flex;align-items:center;gap:5px;
+      padding:0 10px;overflow:hidden;
+    ">
+      ${edit ? `
+        <button class="btn btn-g" onclick="addInsRow()"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 10px;
+                 background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.3);color:#fff">
+          + Fila
+        </button>
+        <button class="btn btn-o" onclick="showFijosModal()"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 10px;
+                 background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#fff">
+          ⚙ Insumos Fijos
+        </button>
+      ` : `<span class="badge ba" style="color:#fff;flex-shrink:0">Solo Lectura</span>`}
+    </div>
+    <div id="fijos-summary"
+      style="padding:4px 12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;
+             background:var(--bg,#EFECE4);border-bottom:1px solid var(--bd,#D4CFC4);min-height:28px;">
+    </div>`;
+}
+
+
 function buildPaneInsumos() {
   const pane = document.getElementById('pane-insumos');
   if (!pane) return;
   const edit = canEdit('insumos');
+
+  pane.style.cssText = 'padding:0;overflow:visible;min-width:max-content';
+
+  buildToolbarInsumos();
 
   // Generar encabezados para los 10 insumos variables
   const insHeaders = [...Array(10)].map((_, n) =>
@@ -164,38 +205,40 @@ function buildPaneInsumos() {
      <th class="gh-ins num" style="min-width:75px">$/Unid</th>`
   ).join('');
 
-  pane.innerHTML = `
-    <!-- Zona de carga desde Excel -->
-    <div class="upload-zone" id="drop-insumos"
-         ondragover="event.preventDefault();this.classList.add('drag')"
-         ondragleave="this.classList.remove('drag')"
-         ondrop="handleDrop(event,'insumos')"
-         onclick="${edit ? "document.getElementById('file-insumos').click()" : 'void(0)'}"
-         style="${edit ? '' : 'pointer-events:none;opacity:.6'}">
-      <span class="big">📂</span>
-      <b>${edit ? 'Cargar hoja INSUMOS desde fichero Excel' : 'Solo lectura'}</b>
-      <input type="file" id="file-insumos" accept=".xlsx,.xls"
-             style="display:none" onchange="handleFile(this,'insumos')">
-      <div id="upload-status-insumos"
-           style="margin-top:8px;font-size:11px;font-weight:600"></div>
-    </div>
+pane.innerHTML = `
+    <!-- ══ ZONA EXCEL + GRILLA (scroll horizontal aquí) ══════════════════ -->
+    <div style="overflow-x:auto;width:100%">
 
-    <!-- Barra de acciones -->
-    <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
-      ${edit
-        ? `<button class="btn btn-g" onclick="addInsRow()">+ Agregar fila</button>
-           <button class="btn btn-o btn-sm" onclick="showFijosModal()">⚙ Insumos Fijos</button>`
-        : '<span class="badge ba">Solo Lectura</span>'}
-    </div>
-
-    <!-- Banner resumen de insumos fijos -->
-    <div id="fijos-summary"
-         style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+    <!-- ══ ZONA EXCEL — compacta ════════════════════════════════════════ -->
+    <div style="padding:6px 12px 0">
+      <div id="drop-insumos" style="
+        border:1.5px dashed var(--bd2,#B5B0A6);border-radius:6px;
+        padding:7px 16px; display:flex; align-items:center; gap:10px;
+        background:var(--wh,#fff); cursor:${edit ? 'pointer' : 'default'};
+        font-size:11px; color:var(--tx3); margin-bottom:8px;
+        ${edit ? '' : 'opacity:.6;pointer-events:none'}
+      "
+        ondragover="event.preventDefault();this.style.borderColor='var(--g3)';this.style.background='var(--gxlt)'"
+        ondragleave="this.style.borderColor='';this.style.background='var(--wh)'"
+        ondrop="handleDrop(event,'insumos');this.style.borderColor='';this.style.background='var(--wh)'"
+        onclick="${edit ? "document.getElementById('file-insumos').click()" : 'void(0)'}">
+        <span style="font-size:18px;flex-shrink:0">📂</span>
+        <span>
+          <b style="color:var(--tx,#1A1714)">${edit ? 'Cargar hoja INSUMOS desde fichero Excel' : 'Solo lectura'}</b>
+          <span style="margin-left:8px;color:var(--tx3)">
+            Referencia · Insumo1 · Prov1 · Cant1 · Precio1 … (hasta Ins10)
+          </span>
+        </span>
+        <input type="file" id="file-insumos" accept=".xlsx,.xls"
+               style="display:none" onchange="handleFile(this,'insumos')">
+        <span id="upload-status-insumos" style="margin-left:auto;font-weight:600;color:var(--g1)"></span>
+      </div>
     </div>
 
     <!-- Grilla: referencias en filas, 10 insumos en columnas -->
-    <div class="xgrid-wrap">
-      <table class="xgrid" id="insumos-grid">
+    <div style="padding:0 12px 12px">
+      <div class="xgrid-wrap">
+        <table class="xgrid" id="insumos-grid">
         <thead>
           <tr>
             <th class="fr" style="min-width:240px;max-width:240px">Referencia</th>
@@ -213,6 +256,7 @@ function buildPaneInsumos() {
         </thead>
         <tbody id="insumos-body"></tbody>
       </table>
+    </div>
     </div>`;
 
   renderFijosSummary();

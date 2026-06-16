@@ -4,24 +4,31 @@ const Prenda   = require('../models/PrendaModel');
 const InsFijo  = require('../models/InsumoFijoModel');
 const { authMiddleware, rolesMiddleware } = require('../middlewares/auth.middleware');
 
-// Guardar prenda completa (telas + insumos variables)
+// ── POST /api/prendas/guardar — Guardar prenda completa ───────────────
 router.post('/guardar', authMiddleware, rolesMiddleware(1, 4), async (req, res) => {
   try {
     const result = await Prenda.guardarCompleto(req.body);
     res.json({ ok: true, data: result });
   } catch (err) {
-    console.error(err);
+    console.error('Error guardando prenda:', err);
+    if (err.duplicado) {
+      return res.status(409).json({
+        ok:          false,
+        duplicado:   true,
+        idExistente: err.idExistente,
+        message:     err.message
+      });
+    }
     res.status(500).json({ ok: false, message: err.message });
   }
 });
 
-// Buscar prendas por nombre sin importar la colección
+// ── GET /api/prendas/buscar?q= — Buscar por nombre en todas las colecciones ──
 router.get('/buscar', authMiddleware, async (req, res) => {
   try {
     const { q } = req.query;
     if (!q || q.trim().length < 2)
       return res.json({ ok: false, message: 'Escribe al menos 2 caracteres' });
-
     const data = await Prenda.buscarPorNombre(q.trim());
     res.json({ ok: true, data });
   } catch (err) {
@@ -29,7 +36,7 @@ router.get('/buscar', authMiddleware, async (req, res) => {
   }
 });
 
-// Obtener prendas de una colección con materiales (usado por el selector)
+// ── GET /api/prendas?colId= — Prendas de una colección con materiales ─
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const { colId } = req.query;
@@ -41,7 +48,7 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-// Obtener prendas de una colección (ruta legacy)
+// ── GET /api/prendas/coleccion/:colId — Ruta legacy sin materiales ────
 router.get('/coleccion/:colId', authMiddleware, async (req, res) => {
   try {
     const data = await Prenda.getByColeccion(req.params.colId);
@@ -51,7 +58,18 @@ router.get('/coleccion/:colId', authMiddleware, async (req, res) => {
   }
 });
 
-// Guardar insumos fijos globales
+// ── PUT /api/prendas/:id — Actualizar prenda completa (upsert) ────────
+router.put('/:id', authMiddleware, rolesMiddleware(1, 4), async (req, res) => {
+  try {
+    const result = await Prenda.actualizarCompleto(parseInt(req.params.id), req.body);
+    res.json({ ok: true, message: 'Prenda actualizada', data: result });
+  } catch (err) {
+    console.error('Error actualizando prenda:', err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
+// ── POST /api/prendas/insumos-fijos — Guardar insumos fijos globales ──
 router.post('/insumos-fijos', authMiddleware, rolesMiddleware(1, 4), async (req, res) => {
   try {
     await InsFijo.guardarTodos(req.body.fijos);
@@ -61,7 +79,7 @@ router.post('/insumos-fijos', authMiddleware, rolesMiddleware(1, 4), async (req,
   }
 });
 
-// Cargar insumos fijos desde BD
+// ── GET /api/prendas/insumos-fijos — Cargar insumos fijos desde BD ───
 router.get('/insumos-fijos', authMiddleware, async (req, res) => {
   try {
     const data = await InsFijo.getAll();

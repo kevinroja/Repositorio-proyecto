@@ -1,3 +1,4 @@
+// src/models/ColeccionModel.js
 const db = require('../config/db');
 
 class ColeccionModel {
@@ -43,9 +44,32 @@ class ColeccionModel {
   }
 
   static async eliminar(id) {
-    return db.execute(
-      `DELETE FROM coleccion WHERE idCOLECCION = ?`, [id]
-    );
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      // Contar referencias antes de borrar
+      const [prendas] = await conn.execute(
+        `SELECT COUNT(*) AS total FROM prenda WHERE COLECCION_idCOLECCION = ?`,
+        [id]
+      );
+      const totalRefs = prendas[0].total;
+
+      // Borrar colección — CASCADE elimina prenda, prenda_tela,
+      // prenda_insumos_var, costo_prenda, precio_canal automáticamente
+      await conn.execute(
+        `DELETE FROM coleccion WHERE idCOLECCION = ?`, [id]
+      );
+
+      await conn.commit();
+      return { ok: true, prendasEliminadas: totalRefs };
+
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
   }
 
   static async getPrendasByColeccion(id) {

@@ -32,12 +32,117 @@ function getAuthConfig() {
 
 
 /**
+ * Inyecta el toolbar de Telas en #module-toolbar.
+ * Misma estructura que buildToolbarInsumos().
+ */
+async function cargarColeccionesEnToolbar() {
+  if (COLECCIONES.length) {
+    buildToolbarTelas();
+    return;
+  }
+  try {
+    const { token, API } = getAuthConfig();
+    const res  = await fetch(`${API}/colecciones`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const json = await res.json();
+    const data = json.data ?? json;
+    if (Array.isArray(data)) {
+      data.forEach(c => {
+        if (!COLECCIONES.find(x => x.id == c.idCOLECCION)) {
+          COLECCIONES.push({
+            id:          c.idCOLECCION,
+            name:        c.NombreColeccion,
+            season:      c.Temporada,
+            year:        c.Año,
+            referencias: c.referencias || 0
+          });
+        }
+      });
+    }
+  } catch(e) { console.warn('No se pudo cargar colecciones:', e.message); }
+  buildToolbarTelas();
+}
+
+
+function buildToolbarTelas() {
+  const tbSlot = document.getElementById('module-toolbar');
+  if (!tbSlot) return;
+  const edit = canEdit('telas');
+
+  tbSlot.innerHTML = `
+    <div id="toolbar-telas" style="
+      width:100%;box-sizing:border-box;height:40px;z-index:200;
+      background:var(--g1,#1B4332);
+      border-bottom:2px solid var(--g2,#2D6A4F);
+      box-shadow:0 2px 8px rgba(0,0,0,.18);
+      display:flex;align-items:center;gap:5px;
+      padding:0 10px;overflow:hidden;
+    ">
+      ${edit ? `
+        <button class="btn btn-g" onclick="addTelaRow()"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 10px;
+                 background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.3);color:#fff">
+          + Fila
+        </button>
+        <button class="btn btn-o" onclick="clearTelas()"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 10px;
+                 background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#fff">
+          🗑
+        </button>
+        <div style="width:1px;height:22px;background:rgba(255,255,255,.2);flex-shrink:0;margin:0 2px"></div>
+        <select id="sel-col-cargar" style="
+          flex-shrink:0;height:26px;font-size:11px;padding:0 8px;min-width:170px;
+          background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+          color:#fff;border-radius:4px;cursor:pointer">
+          <option value="" style="background:#1B4332">📂 Seleccionar colección...</option>
+          ${COLECCIONES.map(c =>
+            `<option value="${c.id}" style="background:#fff;color:#000000">${esc(c.name)}</option>`
+          ).join('')}
+        </select>
+        <button class="btn btn-g" onclick="cargarTelasPorColeccion()"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 10px;
+                 background:rgba(90,62,138,.7);border-color:rgba(255,255,255,.3);color:#fff">
+          ⬇ Cargar
+        </button>
+        <button class="btn btn-g" onclick="actualizarTelasPorColeccion()"
+          title="Recarga desde BD la colección seleccionada"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 10px;
+                 background:rgba(58,110,168,.7);border-color:rgba(255,255,255,.3);color:#fff">
+          ↺ Actualizar
+        </button>
+        <div style="width:1px;height:22px;background:rgba(255,255,255,.2);flex-shrink:0;margin:0 2px"></div>
+        <input id="inp-buscar-prenda" type="text"
+          placeholder="🔍 Buscar prenda..."
+          onkeydown="if(event.key==='Enter') buscarPrendaIndividual()"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 8px;min-width:180px;
+                 background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+                 color:#fff;border-radius:4px">
+        <button class="btn btn-g" onclick="buscarPrendaIndividual()"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 10px;
+                 background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.3);color:#fff">
+          + Agregar
+        </button>
+        <div style="flex:1"></div>
+        <button class="btn btn-g" onclick="guardarTelas()"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 12px;
+                 background:rgba(26,107,124,.8);border-color:rgba(255,255,255,.3);color:#fff">
+          💾 Guardar en BD
+        </button>
+      ` : `<span style="color:#fff;font-size:11px;opacity:.7">Solo Lectura</span>`}
+    </div>`;
+}
+
+
+/**
  * Construye el HTML completo del pane de Telas.
  */
 function buildPaneTelas() {
   const pane = document.getElementById('pane-telas');
   if (!pane) return;
   const edit = canEdit('telas');
+
+  buildToolbarTelas();
 
   pane.innerHTML = `
     <!-- Zona de carga desde Excel -->
@@ -58,26 +163,6 @@ function buildPaneTelas() {
            style="margin-top:8px;font-size:11px;font-weight:600"></div>
     </div>
 
-    <!-- Barra de acciones -->
-    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
-      ${edit
-        ? `<button class="btn btn-g" onclick="addTelaRow()">+ Agregar fila</button>
-           <button class="btn btn-o" onclick="clearTelas()">🗑 Limpiar</button>
-           <select id="sel-col-cargar" class="ci left" style="min-width:160px">
-             <option value="">📂 Seleccionar colección...</option>
-             ${COLECCIONES.map(c => '<option value="' + c.id + '">' + esc(c.name) + '</option>').join('')}
-           </select>
-           <button class="btn btn-g" onclick="cargarTelasPorColeccion()"
-             style="background:#5a3e8a">
-             ⬇ Cargar referencias
-           </button>
-           <button class="btn btn-g" onclick="guardarTelas()"
-             style="margin-left:auto;background:#1a6b7c">
-             💾 Guardar en BD
-           </button>`
-        : '<span class="badge ba">Solo Lectura</span>'}
-      <span class="hint">Edita directo en la celda · Enter/Tab para avanzar</span>
-    </div>
 
     <!-- Grilla estilo Excel -->
     <div class="xgrid-wrap">
@@ -272,7 +357,8 @@ function deleteTelaRow(id) {
  * Elimina TODAS las filas de tela tras confirmación.
  */
 async function clearTelas() {
-  const ok = await window.parent.confirmar('¿Borrar todas las filas de tela?', 'danger', 'Borrar todo');
+  const confirmFn = window.confirmar || window.parent?.confirmar;
+  const ok = await confirmFn?.('¿Borrar todas las filas de tela?', 'danger', 'Borrar todo');
   if (!ok) return;
   TELAS = [];
   renderTelas();
@@ -420,6 +506,10 @@ function buildPaneMateria() {
 
   buildSubPaneTelas();
   buildSubPaneInsumos();
+
+  // buildSubPaneInsumos sobreescribe el toolbar — restaurar el de telas con setTimeout
+  // para que el DOM ya esté listo cuando se inyecte
+  setTimeout(() => cargarColeccionesEnToolbar(), 0);
 }
 
 
@@ -434,6 +524,10 @@ function switchSubtab(which) {
   btnT.style.color      = showTelas ? 'var(--bg)' : 'var(--tx2)';
   btnI.style.background = showTelas ? 'transparent' : 'var(--g1)';
   btnI.style.color      = showTelas ? 'var(--tx2)' : 'var(--bg)';
+
+  // Actualizar toolbar según el subtab activo
+  if (showTelas) cargarColeccionesEnToolbar();
+  else           buildToolbarInsumos();
 }
 
 
@@ -449,9 +543,12 @@ function buildSubPaneTelas() {
 function buildSubPaneInsumos() {
   const sub = document.getElementById('subpane-insumos');
   if (!sub) return;
+  const wasHidden = sub.style.display === 'none';
   sub.id = 'pane-insumos';
   buildPaneInsumos();
   sub.id = 'subpane-insumos';
+  // Restaurar display:none si estaba oculto antes de construir
+  if (wasHidden) sub.style.display = 'none';
 }
 
 
@@ -467,12 +564,22 @@ async function guardarTelas() {
 
   const fijosTotal = calcTtlFijos();
 
-  // Verificar duplicados en memoria
-  const refs = TELAS.map(r => r.ref.trim().toLowerCase());
-  const duplicadosLocales = refs.filter((r, i) => refs.indexOf(r) !== i);
-  if (duplicadosLocales.length) {
-    toast(`⚠ Referencias duplicadas: ${[...new Set(duplicadosLocales)].join(', ')}`, 'error');
-    return;
+  // Deduplicar en memoria — clave única es ref+colId (igual que en BD)
+  // Si hay duplicadas, conserva la primera y elimina las siguientes silenciosamente
+  const vistas = new Set();
+  const dupNombres = [];
+  TELAS = TELAS.filter(r => {
+    const clave = `${r.ref.trim().toLowerCase()}__${r.colId}`;
+    if (vistas.has(clave)) {
+      dupNombres.push(r.ref);
+      return false;
+    }
+    vistas.add(clave);
+    return true;
+  });
+  if (dupNombres.length) {
+    console.warn('Duplicadas eliminadas antes de guardar:', dupNombres);
+    renderTelas();
   }
 
   let ok = 0, err = 0;
@@ -508,8 +615,27 @@ async function guardarTelas() {
       const json = await res.json();
       if (json.ok) ok++;
       else if (json.duplicado) {
-        toast(`⚠ "${row.ref}" ya existe en BD — omitida`, 'warn');
-        err++;
+        // Upsert: si ya existe, hacer PUT para actualizar
+        try {
+          const resPut = await fetch(`${API}/prendas/${json.idExistente}`, {
+            method:  'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({
+              ref:         row.ref,
+              colId:       row.colId || null,
+              taller:      +row.taller || 0,
+              ttlMat:      calcTtlMat(row),
+              ttlInsVar:   insRow ? calcTtlVar(insRow) : 0,
+              ttlInsFijos: fijosTotal,
+              costoTotal:  calcTtlMat(row) + (insRow ? calcTtlVar(insRow) : 0) + fijosTotal,
+              materiales,
+              insumos
+            })
+          });
+          const putJson = await resPut.json();
+          if (putJson.ok) ok++;
+          else { err++; console.error(`Error PUT "${row.ref}":`, putJson.message); }
+        } catch(ePut) { err++; console.error(`Error PUT "${row.ref}":`, ePut.message); }
       } else {
         console.error(`Error en "${row.ref}":`, json.message);
         err++;
@@ -541,6 +667,169 @@ async function guardarTelas() {
 /**
  * Carga desde la BD todas las referencias de la colección seleccionada.
  */
+/**
+ * Guarda los cambios actuales de la grilla en BD via PUT para prendas existentes.
+ * Detecta qué filas tienen idPREND (vienen de BD) y las actualiza via PUT.
+ * Las filas sin idPREND (nuevas) las guarda via POST (guardarTelas).
+ */
+async function actualizarTelasPorColeccion() {
+  if (!TELAS.length) { toast('⚠ No hay datos en la grilla', 'error'); return; }
+
+  // Forzar que todos los inputs activos disparen su onchange antes de leer TELAS
+  document.activeElement?.blur();
+  await new Promise(r => setTimeout(r, 50));
+
+  const { token, API } = getAuthConfig();
+  if (!token) { toast('⚠ Sin sesión activa', 'error'); return; }
+
+  const existentes = TELAS.filter(r => r.idPREND);
+  const nuevas     = TELAS.filter(r => !r.idPREND);
+
+  if (!existentes.length && nuevas.length) {
+    toast('ℹ Prendas nuevas — usa 💾 Guardar en BD');
+    return;
+  }
+
+  const fijosTotal = calcTtlFijos();
+  let ok = 0, err = 0;
+
+  for (const row of existentes) {
+    const materiales = row.m
+      .filter(m => m.mat)
+      .map(m => ({ Nombre: m.mat, Mts: +m.mts || 0, Precio: +m.precio || 0 }));
+
+    const insRow = INSUMOS.find(i =>
+      i.ref === row.ref && (!i.colId || String(i.colId) === String(row.colId))
+    );
+    const insumos = insRow
+      ? insRow.ins.filter(i => i.name).map(i => ({
+          name: i.name, cant: +i.cant || 0, precio: +i.precio || 0
+        }))
+      : [];
+
+    try {
+      const res = await fetch(`${API}/prendas/${row.idPREND}`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          ref:         row.ref,
+          colId:       row.colId || null,
+          taller:      +row.taller || 0,
+          ttlMat:      calcTtlMat(row),
+          ttlInsVar:   insRow ? calcTtlVar(insRow) : 0,
+          ttlInsFijos: fijosTotal,
+          costoTotal:  calcTtlMat(row) + (insRow ? calcTtlVar(insRow) : 0) + fijosTotal,
+          materiales,
+          insumos
+        })
+      });
+      const json = await res.json();
+      if (json.ok) {
+        ok++;
+        // Actualizar ref en INSUMOS si cambió
+        if (insRow && insRow.ref !== row.ref) insRow.ref = row.ref;
+      } else {
+        err++;
+        console.error(`Error PUT "${row.ref}":`, json.message);
+      }
+    } catch(e) {
+      err++;
+      console.error(`Error PUT "${row.ref}":`, e.message);
+    }
+  }
+
+  if (err === 0) {
+    toast(`✓ ${ok} prenda(s) actualizadas correctamente`);
+  } else {
+    toast(`⚠ ${ok} actualizadas, ${err} con error`, 'error');
+  }
+}
+
+
+/**
+ * Busca una prenda por nombre en TODAS las colecciones via API.
+ * Muestra todos los resultados (una prenda puede existir en varias colecciones).
+ */
+async function buscarPrendaIndividual() {
+  const inp = document.getElementById('inp-buscar-prenda');
+  const q   = inp?.value?.trim();
+  if (!q || q.length < 2) { toast('⚠ Escribe al menos 2 caracteres', 'error'); return; }
+
+  const { token, API } = getAuthConfig();
+  if (!token) { toast('⚠ Sin sesión activa', 'error'); return; }
+
+  toast('🔍 Buscando…');
+
+  try {
+    const res  = await fetch(`${API}/prendas/buscar?q=${encodeURIComponent(q)}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.message);
+
+    if (!json.data?.length) {
+      toast(`Sin resultados para "${q}"`, 'warn');
+      return;
+    }
+
+    let agregadas = 0;
+    json.data.forEach(p => {
+      const yaExiste = TELAS.some(t =>
+        t.ref === p.Referencia && String(t.colId) === String(p.COLECCION_idCOLECCION)
+      );
+      if (yaExiste) return;
+
+      TELAS.push({
+        id:      ID(),
+        idPREND: p.idPREND,
+        ref:     p.Referencia,
+        col:     p.NombreColeccion || '',
+        colId:   p.COLECCION_idCOLECCION || '',
+        taller:  p.Costo_confeccion || 0,
+        m:      (p.materiales || []).map(m => ({
+          mat:    m.Nombre         || '',
+          prov:   '',
+          mts:    m.Metros         || '',
+          precio: m.Precio_Unitario || ''
+        })).concat(emptyMats()).slice(0, 4),
+        ajuste: 5,
+        margen: 40
+      });
+
+      const yaIns = INSUMOS.some(i =>
+        i.ref === p.Referencia && String(i.colId) === String(p.COLECCION_idCOLECCION)
+      );
+      if (!yaIns) {
+        const insVarBD = (p.insumosVar || []).map(i => ({
+          name:   i.PRENDA_INSUMOS_VARcol || '',
+          prov:   '',
+          cant:   i.Cantidad        || '',
+          precio: i.Precio_unitario || ''
+        }));
+        INSUMOS.push({
+          id:    ID(),
+          ref:   p.Referencia,
+          colId: p.COLECCION_idCOLECCION || '',
+          ins:   insVarBD.concat(emptyIns()).slice(0, 10)
+        });
+      }
+      agregadas++;
+    });
+
+    renderTelas();
+    renderInsumos();
+
+    const msg = agregadas > 0
+      ? `✓ ${agregadas} prenda(s) encontradas para "${q}"`
+      : `⚠ "${q}" ya estaba cargada en la grilla`;
+    toast(msg);
+
+  } catch (err) {
+    toast('❌ ' + err.message, 'error');
+  }
+}
+
+
 async function cargarTelasPorColeccion() {
   const sel   = document.getElementById('sel-col-cargar');
   const colId = sel?.value;
@@ -563,16 +852,17 @@ async function cargarTelasPorColeccion() {
     json.data.forEach(p => {
       // ── Telas ──────────────────────────────────────────────
       TELAS.push({
-        id:     ID(),
-        ref:    p.Referencia,
-        col:    colObj.name,
-        colId:  colId,
-        taller: p.Costo_confeccion || 0,
+        id:      ID(),
+        idPREND: p.idPREND,
+        ref:     p.Referencia,
+        col:     colObj?.name || '',
+        colId:   colId,
+        taller:  p.Costo_confeccion || 0,
         m:      (p.materiales || []).map(m => ({
-          mat:    m.Nombre  || '',
+          mat:    m.Nombre         || '',
           prov:   '',
-          mts:    m.Metros  || '',
-          precio: m.Precio  || ''
+          mts:    m.Metros         || '',
+          precio: m.Precio_Unitario || ''
         })).concat(emptyMats()).slice(0, 4),
         ajuste: 5,
         margen: 40
@@ -602,7 +892,7 @@ async function cargarTelasPorColeccion() {
         FIJOS = jf.data.map(f => ({
           id:     ID(),
           name:   f.Nombre,
-          precio: f.Precio_unitari || 0,
+          precio: f.Precio_Unitario || f.Precio_unitario || f.Precio_unitari || 0,
           qty:    f.Cantidad       || 1
         }));
         renderFijosModal();

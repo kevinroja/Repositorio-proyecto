@@ -6,6 +6,12 @@
  * (hoja PF-FW 26). Solo visible para Admin y Jefe de Finanzas.
  * Incluye parámetros globales editables y exportación CSV.
  * Depende de: utils.js, state.js, auth.js, calculator.js
+ *
+ * CAMBIOS v2:
+ *  - Selector de colección en la cabecera del pane
+ *  - cargarConsolidadoDesdeDB() jalaa prendas reales de la BD
+ *  - mapDBToState() convierte la respuesta de la API al formato
+ *    que recalc() ya espera (TELAS / INSUMOS)
  * ============================================================
  */
 
@@ -34,6 +40,29 @@ function buildPaneConsolidado() {
   const edit = canEdit('consolidado');
 
   pane.innerHTML = `
+    <!-- ── Selector de Colección ──────────────────────────── -->
+    <div class="card" id="consolidado-selector-card"
+         style="margin-bottom:12px;padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <label style="font-size:12px;font-weight:600;color:var(--tx2);
+                      white-space:nowrap">
+          📦 Colección
+        </label>
+        <select id="cons-col-select"
+                style="flex:1;min-width:200px;max-width:360px"
+                onchange="cargarConsolidadoDesdeDB(this.value)">
+          <option value="">— Selecciona una colección —</option>
+        </select>
+        <button class="btn btn-o btn-sm" onclick="cargarColeccionesEnSelector()">
+          ↺ Refrescar
+        </button>
+        <span id="cons-loading"
+              style="font-size:11px;color:var(--tx3);display:none">
+          ⏳ Cargando…
+        </span>
+      </div>
+    </div>
+
     <!-- Panel de Parámetros Globales -->
     <div class="card" id="params-card">
       <div class="card-head">
@@ -166,11 +195,9 @@ function buildPaneConsolidado() {
             <th class="gh-con  sub" style="min-width:120px">SUB TL 2</th>
             <th class="gh-usd  usd" style="min-width:100px">USD</th>
             <th class="gh-usd  usd" style="min-width:110px">× KV MKUP</th>
-            <!-- AJUSTE: editable por referencia para bajar precio manualmente -->
             <th class="gh-usd  usd" style="min-width:100px;background:#EBF4FF">
               AJUSTE<br><small style="font-size:8px">editable</small>
             </th>
-            <!-- MARGEN: editable por referencia -->
             <th class="gh-usd  usd sub" style="min-width:110px">
               + MARGEN<br><small style="font-size:8px">editable</small>
             </th>
@@ -197,19 +224,192 @@ function buildPaneConsolidado() {
           <tr>
             <td colspan="24"
                 style="text-align:center;padding:32px;color:var(--tx3)">
-              Sin datos · carga referencias en Tab Telas
+              Selecciona una colección para cargar las referencias
             </td>
           </tr>
         </tbody>
       </table>
     </div>`;
+
+  // Cargar colecciones en el selector al construir el pane
+  cargarColeccionesEnSelector();
 }
+
+
+// ── INTEGRACIÓN CON BD ────────────────────────────────────────
+
+
+/**
+ * Obtiene las colecciones disponibles desde la API y llena
+ * el dropdown del consolidado.
+ */
+async function cargarColeccionesEnSelector() {
+  const select = document.getElementById('cons-col-select');
+  if (!select) return;
+
+  const API   = window.parent?.API_URL || 'http://localhost:3000/api';
+  const token = window.parent?.kikaToken || sessionStorage.getItem('kika_token');
+
+  try {
+    const res  = await fetch(`${API}/colecciones`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.message);
+
+    const colecciones = json.data || [];
+
+    // Preservar la opción vacía al inicio
+    select.innerHTML = `<option value="">— Selecciona una colección —</option>` +
+      colecciones.map(c => `
+        <option value="${c.idCOLECCION}">
+          ${esc(c.NombreColeccion)} · ${esc(c.Temporada)} ${c.Año}
+          ${c.total_referencias ? `(${c.total_referencias} refs)` : ''}
+        </option>`).join('');
+
+    // Si el selector del pane-telas ya tenía una colección activa, pre-seleccionarla
+    const colActiva = document.getElementById('col-select')?.value;
+    if (colActiva) select.value = colActiva;
+
+  } catch (err) {
+    toast('❌ No se pudieron cargar las colecciones', 'error');
+    console.error('[Consolidado] cargarColeccionesEnSelector:', err);
+  }
+}
+
+
+/**
+ * Carga las prendas de la colección seleccionada desde la BD,
+ * las convierte al formato interno y dispara recalc().
+ *
+ * @param {string|number} colId - ID de la colección seleccionada
+ */
+async function cargarConsolidadoDesdeDB(colId) {
+  if (!colId) {
+    // Sin selección: limpiar tabla
+    TELAS   = [];
+    INSUMOS = [];
+    recalc();
+    return;
+  }
+
+  const loading = document.getElementById('cons-loading');
+  const tbody   = document.getElementById('consol-body');
+
+  // Mostrar indicador de carga
+  if (loading) loading.style.display = 'inline';
+  if (tbody) tbody.innerHTML = `
+    <tr>
+      <td colspan="24" style="text-align:center;padding:32px;color:var(--tx3)">
+        ⏳ Cargando referencias…
+      </td>
+    </tr>`;
+
+  const API   = window.parent?.API_URL || 'http://localhost:3000/api';
+  const token = window.parent?.kikaToken || sessionStorage.getItem('kika_token');
+
+  try {
+    // GET /api/prendas?colId=X  →  prendas con materiales e insumosVar incluidos
+    const res  = await fetch(`${API}/prendas?colId=${colId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.message);
+
+    const prendas = json.data || [];
+
+    if (!prendas.length) {
+      TELAS   = [];
+      INSUMOS = [];
+      recalc();
+      toast('⚠ La colección no tiene referencias aún');
+      return;
+    }
+
+    // Convertir respuesta de BD al formato que recalc() espera
+    mapDBToState(prendas);
+
+    // Disparar recálculo con los nuevos datos
+    recalc();
+
+    toast(`✓ ${prendas.length} referencia${prendas.length !== 1 ? 's' : ''} cargada${prendas.length !== 1 ? 's' : ''}`);
+    addHist('Cargó colección en Consolidado', 'Consolidado', `colId=${colId}, refs=${prendas.length}`);
+
+  } catch (err) {
+    toast('❌ Error al cargar referencias: ' + err.message, 'error');
+    console.error('[Consolidado] cargarConsolidadoDesdeDB:', err);
+  } finally {
+    if (loading) loading.style.display = 'none';
+  }
+}
+
+
+/**
+ * Convierte el array de prendas que devuelve la API al formato
+ * que usan TELAS e INSUMOS en el estado global (state.js).
+ *
+ * Formato esperado por recalc() / calcRow():
+ *
+ * TELAS[i] = {
+ *   id      : string,          // ID único (usamos idPREND como string)
+ *   ref     : string,          // Nombre/referencia de la prenda
+ *   telas   : [{ mat, metros, precio }],  // array de telas
+ *   taller  : number,          // costo taller COP
+ *   ajuste  : number,          // ajuste USD manual (default 0)
+ *   margen  : number,          // margen extra USD (default 0)
+ * }
+ *
+ * INSUMOS[i] = {
+ *   ref     : string,          // debe coincidir con TELAS[i].ref
+ *   vars    : [{ mat, cant, precio }],   // insumos variables
+ *   fijos   : [{ nombre, precio, cant }] // insumos fijos globales
+ * }
+ *
+ * La BD devuelve (getByColeccionConMateriales):
+ *   prenda.Referencia, prenda.ValorTaller
+ *   prenda.telas    → [{ NombreMaterial, Metros, PrecioUnitario }]
+ *   prenda.insumosVar → [{ NombreMaterial, Cantidad, PrecioUnitario }]
+ *
+ * @param {Array} prendas - Array de prendas desde la API
+ */
+function mapDBToState(prendas) {
+  // Insumos fijos globales ya cargados en state (FIJOS)
+  const fijosGlobales = FIJOS || [];
+
+  // calcTtlMat() espera row.m=[{mts,precio}] y calcTtlVar() espera row.ins=[{cant,precio}]
+  // En lugar de adaptar calculator.js, mapeamos directamente al formato que espera:
+  TELAS = prendas.map(p => ({
+    id:     String(p.idPREND),
+    ref:    p.Referencia || `Prenda ${p.idPREND}`,
+    // Formato que calcTtlMat() lee: row.m = [{mts, precio}]
+    m: (p.materiales || []).map(t => ({
+      mts:    parseFloat(t.Metros)                                 || 0,
+      precio: parseFloat(t.Precio_Unitario) || parseFloat(t.Precio) || 0,
+    })),
+    taller: parseFloat(p.Costo_confeccion) || 0,
+    ajuste: 0,
+    margen: 0,
+  }));
+
+  INSUMOS = prendas.map(p => ({
+    ref:   p.Referencia || `Prenda ${p.idPREND}`,
+    // Formato que calcTtlVar() lee: row.ins = [{cant, precio}]
+    ins: (p.insumosVar || []).map(i => ({
+      cant:   parseFloat(i.Cantidad)        || 0,
+      precio: parseFloat(i.Precio_unitario) || 0,
+    })),
+    fijos: fijosGlobales,
+  }));
+}
+
+
+// ── LÓGICA DE CÁLCULO Y RENDERIZADO ──────────────────────────
 
 
 /**
  * Recalcula y renderiza todas las filas del Consolidado.
  * Se llama automáticamente al:
- *   - Activar el tab de Consolidado
+ *   - Seleccionar una colección (cargarConsolidadoDesdeDB)
  *   - Cambiar cualquier parámetro global
  *   - Modificar ajuste o margen de una referencia
  *   - Cargar datos (demo o Excel)
@@ -221,7 +421,7 @@ function recalc() {
   if (!TELAS.length) {
     tbody.innerHTML = `<tr><td colspan="24"
       style="text-align:center;padding:32px;color:var(--tx3)">
-      Sin referencias · carga datos en Tab Telas
+      Selecciona una colección para ver las referencias
     </td></tr>`;
     updateMetrics([]);
     return;
@@ -334,7 +534,6 @@ function toggleParams() {
 
 /**
  * Sincroniza el TRM entre la topbar y el panel de parámetros.
- * Se llama desde ambos inputs para mantenerlos en sincronía.
  * @param {string} v - Nuevo valor del TRM
  */
 function onTrmChange(v) {
@@ -348,7 +547,6 @@ function onTrmChange(v) {
 
 /**
  * Exporta el Consolidado completo a un archivo CSV.
- * Solo disponible para Admin y Finanzas (controlado desde buildUI).
  */
 function exportCSV() {
   const p   = getParams();

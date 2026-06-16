@@ -31,8 +31,8 @@ class ColeccionService {
     }
 
 static async eliminar(id, usuarioId) {
-        await ColeccionService.getById(id); // valida que existe
-        return ColeccionModel.eliminar(id);
+    await ColeccionService.getById(id); // valida que existe
+    return ColeccionModel.eliminar(id); // retorna { ok, prendasEliminadas }
     }
 
     static async getPrendas(id) {
