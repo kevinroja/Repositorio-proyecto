@@ -131,6 +131,10 @@ function buildToolbarTelas() {
         </button>
       ` : `<span style="color:#fff;font-size:11px;opacity:.7">Solo Lectura</span>`}
     </div>`;
+
+  // Sincroniza el espaciador inmediatamente: no depender solo del
+  // ResizeObserver, que puede no haberse adjuntado aún en el primer render.
+  if (typeof syncToolbarSpacer === 'function') syncToolbarSpacer();
 }
 
 
@@ -169,7 +173,7 @@ function buildPaneTelas() {
       <table class="xgrid" id="telas-grid">
         <thead>
           <tr>
-            <th class="fr" style="min-width:240px;max-width:240px">Referencia</th>
+            <th class="fr" style="min-width:240px;max-width:240px;position:sticky;left:0;z-index:3;background:var(--bg,#EFECE4)">Referencia</th>
             <th colspan="2" class="gh-con" style="text-align:center">CONFECCIÓN</th>
             <th colspan="4" class="gh-prod" style="text-align:center">MATERIAL 1</th>
             <th colspan="4" class="gh-prod" style="text-align:center">MATERIAL 2</th>
@@ -179,7 +183,7 @@ function buildPaneTelas() {
             <th style="width:28px"></th>
           </tr>
           <tr>
-            <th class="fr"></th>
+            <th class="fr" style="position:sticky;left:0;z-index:3;background:var(--bg,#EFECE4)"></th>
             <th class="gh-con">Colección</th>
             <th class="gh-con num" style="min-width:110px">Costo Taller</th>
             <th class="gh-prod" style="min-width:120px">Material</th>
@@ -272,7 +276,7 @@ function renderTelas() {
     return `
       <tr class="xr" data-id="${row.id}">
         <!-- Referencia -->
-        <td class="fr">${edit
+        <td class="fr" style="position:sticky;left:0;z-index:2;background:var(--wh,#fff)">${edit
           ? `<input class="ci left" style="font-weight:600;min-width:220px"
                value="${esc(row.ref)}" placeholder="Nombre referencia…"
                onchange="updateT('${row.id}','ref',null,null,this.value)">`

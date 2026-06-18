@@ -131,6 +131,7 @@ function renderFijosSummary() {
 
   if (!FIJOS.length) {
     s.innerHTML = '<span style="font-size:11px;color:var(--tx3)">Sin insumos fijos · usa ⚙ Configurar</span>';
+    if (typeof syncToolbarSpacer === 'function') syncToolbarSpacer();
     return;
   }
 
@@ -140,6 +141,11 @@ function renderFijosSummary() {
       `<span class="badge bg">${esc(f.name)} $${fmt(D(f.precio) * D(f.qty))}</span>`
     ).join('') +
     `<span class="badge bb" style="font-family:var(--mono)">TOTAL $${fmt(total)}</span>`;
+
+  // El contenido de fijos-summary cambia la altura real del toolbar
+  // (puede pasar a varias líneas si hay muchos insumos fijos), así que
+  // hay que re-medir el spacer cada vez que se actualiza este bloque.
+  if (typeof syncToolbarSpacer === 'function') syncToolbarSpacer();
 }
 
 
@@ -181,6 +187,11 @@ function buildToolbarInsumos() {
       style="padding:4px 12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;
              background:var(--bg,#EFECE4);border-bottom:1px solid var(--bd,#D4CFC4);min-height:28px;">
     </div>`;
+
+  // Sincroniza el espaciador inmediatamente. Este toolbar tiene altura
+  // variable (barra de acciones + fijos-summary), así que no se puede
+  // asumir un valor fijo: hay que medir offsetHeight real tras inyectar.
+  if (typeof syncToolbarSpacer === 'function') syncToolbarSpacer();
 }
 
 
@@ -206,9 +217,6 @@ function buildPaneInsumos() {
   ).join('');
 
 pane.innerHTML = `
-    <!-- ══ ZONA EXCEL + GRILLA (scroll horizontal aquí) ══════════════════ -->
-    <div style="overflow-x:auto;width:100%">
-
     <!-- ══ ZONA EXCEL — compacta ════════════════════════════════════════ -->
     <div style="padding:6px 12px 0">
       <div id="drop-insumos" style="
@@ -241,13 +249,13 @@ pane.innerHTML = `
         <table class="xgrid" id="insumos-grid">
         <thead>
           <tr>
-            <th class="fr" style="min-width:240px;max-width:240px">Referencia</th>
+            <th class="fr" style="min-width:240px;max-width:240px;position:sticky;left:0;z-index:3;background:var(--bg,#EFECE4)">Referencia</th>
             ${insHeaders}
             <th colspan="2" class="gh-fit" style="text-align:center">TOTALES</th>
             <th style="width:28px"></th>
           </tr>
           <tr>
-            <th class="fr"></th>
+            <th class="fr" style="position:sticky;left:0;z-index:3;background:var(--bg,#EFECE4)"></th>
             ${insSubH}
             <th class="gh-fit num" style="min-width:100px">TTL VAR</th>
             <th class="gh-fit num" style="min-width:100px">TTL FIJOS</th>
@@ -256,7 +264,6 @@ pane.innerHTML = `
         </thead>
         <tbody id="insumos-body"></tbody>
       </table>
-    </div>
     </div>`;
 
   renderFijosSummary();
@@ -340,7 +347,7 @@ const edit = canEdit('insumos');
 
     return `
       <tr class="xr" data-id="${row.id}">
-        <td class="fr">${edit
+        <td class="fr" style="position:sticky;left:0;z-index:2;background:var(--wh,#fff)">${edit
           ? `<input class="ci left" style="font-weight:600;min-width:220px"
                value="${esc(row.ref)}"
                onchange="updateI('${row.id}',null,'ref',this.value)">`

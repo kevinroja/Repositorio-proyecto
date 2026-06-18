@@ -7,6 +7,7 @@ const coleccionRoutes = require('./src/routes/coleccionRoutes');
 const prendaRoutes    = require('./src/routes/prenda.routes');
 const canalRoutes     = require('./src/routes/canal.routes');
 const soporteRoutes   = require('./src/routes/soporte.routes');
+const reportsRoutes   = require('./src/routes/reports.routes');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -26,6 +27,7 @@ app.use('/api/colecciones', coleccionRoutes);
 app.use('/api/prendas',     prendaRoutes);
 app.use('/api/canales',     canalRoutes);
 app.use('/api/soporte',     soporteRoutes);
+app.use('/api/reportes',    reportsRoutes);
 
 // ─── Ruta de salud ────────────────────────────────────────
 app.get('/api/health', (req, res) => {

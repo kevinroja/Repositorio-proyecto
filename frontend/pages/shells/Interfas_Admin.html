@@ -50,10 +50,18 @@
           <a href="#" onclick="cargar('../auth/Eliminar_Usuario.html',this)">
             <i class="ri-user-unfollow-line"></i> Eliminar Usuario
           </a>
+          <!-- DESPUÉS -->
           <a href="#" onclick="cargar('../auth/Bloquear_Usuario.html',this)">
             <i class="ri-user-forbid-line"></i> Bloquear / Desbloquear
           </a>
         </div>
+      </div>
+
+      <!-- ── Reportes: solo para Administrador (rol 4) ── -->
+      <div class="tn-group" id="secReportes" style="display:none">
+        <button class="tn-btn" onclick="cargar('../reportes/Reportes.html', this)">
+          <i class="ri-bar-chart-box-line"></i> Reportes
+        </button>
       </div>
 
       <!-- ── Costeo: visible para roles 1, 2 y 4 ──────────────────
@@ -142,8 +150,10 @@
 
   // ── Configura los menús según el rol del usuario ─────────────
 
-  if (rol === 4) {
-    // ADMINISTRADOR: ve todo (telas, consolidado, canales de venta)
+if (rol === 4) {
+    // ADMINISTRADOR: acceso total al módulo de costeo —
+    // Telas & Insumos, Consolidado y Canal de Venta.
+    // (Colecciones, Consulta e Historial ya tienen botón propio en el navbar.)
     dropCosteo.innerHTML = `
       <a href="#" onclick="cargar('../producto/producto.html?tab=materia',this)">
         <i class="ri-ruler-line"></i> Telas & Insumos
@@ -154,12 +164,13 @@
       <a href="#" onclick="cargar('../producto/producto.html?tab=canales',this)">
         <i class="ri-store-line"></i> Canal de Venta
       </a>`;
-    document.getElementById('secUsuarios').style.display    = 'flex';  // Muestra menú Usuarios
-    document.getElementById('secCosteo').style.display      = 'flex';  // Muestra menú Costeo
-    document.getElementById('liSoporteAdmin').style.display = 'block'; // Muestra opción Gestión Tickets
-    document.getElementById('liSoporteUser').style.display  = 'none';  // Oculta Soporte Técnico para admin
+    document.getElementById('secUsuarios').style.display    = 'flex';
+    document.getElementById('secCosteo').style.display      = 'flex';
+    document.getElementById('secReportes').style.display    = 'flex';   // ← nueva línea
+    document.getElementById('liSoporteAdmin').style.display = 'block';
+    document.getElementById('liSoporteUser').style.display  = 'none';
     document.getElementById('labelCosteo').textContent      = 'Administrador';
-  }
+}
 
   if (rol === 1) {
     // MATERIA PRIMA: solo accede a Telas & Insumos

@@ -2,12 +2,23 @@ const express  = require('express');
 const router   = express.Router();
 const Prenda   = require('../models/PrendaModel');
 const InsFijo  = require('../models/InsumoFijoModel');
+const Historial = require('../models/Historial');
 const { authMiddleware, rolesMiddleware } = require('../middlewares/auth.middleware');
 
 // ── POST /api/prendas/guardar — Guardar prenda completa ───────────────
 router.post('/guardar', authMiddleware, rolesMiddleware(1, 4), async (req, res) => {
   try {
     const result = await Prenda.guardarCompleto(req.body);
+
+    Historial.registrar({
+      tabla:       'prenda',
+      registro_id: result.prendaId,
+      campo:       'Referencia',
+      valor_nuevo: req.body.ref,
+      accion:      'INSERT',
+      usuario_id:  req.usuario.id,
+    });
+
     res.json({ ok: true, data: result });
   } catch (err) {
     console.error('Error guardando prenda:', err);
@@ -62,6 +73,16 @@ router.get('/coleccion/:colId', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, rolesMiddleware(1, 4), async (req, res) => {
   try {
     const result = await Prenda.actualizarCompleto(parseInt(req.params.id), req.body);
+
+    Historial.registrar({
+      tabla:       'prenda',
+      registro_id: req.params.id,
+      campo:       'Referencia',
+      valor_nuevo: req.body.ref,
+      accion:      'UPDATE',
+      usuario_id:  req.usuario.id,
+    });
+
     res.json({ ok: true, message: 'Prenda actualizada', data: result });
   } catch (err) {
     console.error('Error actualizando prenda:', err);

@@ -175,7 +175,9 @@ function buildPaneConsolidado() {
         <thead>
           <!-- Fila 1: Grupos de columnas -->
           <tr>
-            <th class="fr" style="min-width:220px;max-width:220px" rowspan="2">REFERENCIA</th>
+            <th class="fr" style="min-width:220px;max-width:220px;
+                                   background:var(--bg2);z-index:20;
+                                   box-shadow:2px 0 4px rgba(0,0,0,.08)" rowspan="2">REFERENCIA</th>
             <th colspan="5" class="gh-prod" style="text-align:center">PRODUCCIÓN COP</th>
             <th colspan="3" class="gh-con"  style="text-align:center">FINANCIERO</th>
             <th colspan="4" class="gh-usd"  style="text-align:center">USD · MARKUP</th>
@@ -233,6 +235,9 @@ function buildPaneConsolidado() {
 
   // Cargar colecciones en el selector al construir el pane
   cargarColeccionesEnSelector();
+
+  // Inyectar panel de escenarios guardados y botón Guardar
+  inyectarPanelEscenarios();
 }
 
 
@@ -443,7 +448,9 @@ function recalc() {
   tbody.innerHTML = rows.map(({ ref, tId, ajuste, margen, c }) => `
     <tr class="xr">
       <!-- Referencia (columna fija) -->
-      <td class="fr" style="font-weight:600;font-size:11px"
+      <td class="fr" style="font-weight:600;font-size:11px;
+                            background:var(--bg0);z-index:10;
+                            box-shadow:2px 0 4px rgba(0,0,0,.06)"
           title="${esc(ref)}">
         ${ref.length > 34 ? ref.slice(0, 32) + '…' : ref}
       </td>

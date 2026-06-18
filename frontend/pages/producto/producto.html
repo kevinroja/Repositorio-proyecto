@@ -53,6 +53,17 @@
     overflow: visible;
     min-width: max-content;
   }
+
+  /* La columna Referencia (.fr) no puede usar `position:sticky` aquí porque
+     el scroll horizontal real ocurre en <body>, no en .xgrid-wrap (que
+     crece junto con su contenido por min-width:max-content). En su lugar,
+     se usa `position:relative` + `transform:translateX()` aplicado por JS
+     (ver syncStickyRef más abajo) para simular el efecto de columna fija. */
+  .xgrid th.fr, .xgrid td.fr {
+    position: relative !important;
+    z-index: 50;
+    will-change: transform;
+  }
 </style>
 </head>
 <body>
@@ -206,6 +217,7 @@
 <script src="../../js/pane-telas.js"></script>
 <script src="../../js/pane-insumos.js"></script>
 <script src="../../js/pane-consolidado.js"></script>
+<script src="../../js/pane-consolidado-escenarios.js"></script>
 <script src="../../js/pane-canales.js"></script>
 <script src="../../js/pane-consulta.js"></script>
 <script src="../../js/pane-historial.js"></script>
@@ -302,11 +314,35 @@
     if (tb && sp) sp.style.height = tb.offsetHeight + 'px';
   }
 
-  // Observar cambios de tamaño en el toolbar
-  const _tbObs = new ResizeObserver(syncToolbarSpacer);
+  // ── FIJAR COLUMNA REFERENCIA DURANTE EL SCROLL HORIZONTAL ──────────
+  // Por qué no basta con `position:sticky` en las celdas `.fr`:
+  // En este layout, el scroll horizontal real ocurre en <body>, no dentro
+  // de `.xgrid-wrap` (que crece con `min-width:max-content` junto con su
+  // contenido). `sticky` solo funciona cuando el ancestro con overflow es
+  // más angosto que el contenido; aquí ningún ancestro intermedio cumple
+  // esa condición, así que `sticky` no tiene ningún contenedor al que
+  // anclarse de forma útil.
+  //
+  // Solución: igual que el toolbar superior usa `position:fixed` y se
+  // mantiene en el viewport mientras el body se desplaza, aplicamos un
+  // `transform: translateX()` a cada celda `.fr` que compensa exactamente
+  // el scrollLeft del body, haciendo que visualmente queden fijas.
+  function syncStickyRef() {
+    const x = window.scrollX || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
+    document.querySelectorAll('.xgrid th.fr, .xgrid td.fr').forEach(cell => {
+      cell.style.transform = x ? `translateX(${x}px)` : '';
+    });
+  }
+
+  window.addEventListener('scroll', syncStickyRef, { passive: true });
+
+  // Re-sincronizar también cuando cambia el contenido (nuevas filas,
+  // cambio de tab, etc.) ya que las celdas se regeneran con innerHTML
+  // y pierden el transform aplicado anteriormente.
+  const _refObs = new MutationObserver(syncStickyRef);
   document.addEventListener('DOMContentLoaded', () => {
-    const tb = document.getElementById('module-toolbar');
-    if (tb) _tbObs.observe(tb);
+    syncStickyRef();
+    _refObs.observe(document.getElementById('content'), { childList: true, subtree: true });
   });
 </script>
 

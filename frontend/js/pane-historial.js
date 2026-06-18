@@ -2,10 +2,10 @@
  * ============================================================
  * ARCHIVO: js/pane-historial.js
  * DESCRIPCIÓN: Módulo de Historial de Cambios.
- * Registra y muestra todas las acciones realizadas en el sistema.
- * Permite filtrar por módulo y usuario, y exportar a CSV.
+ * Trae los registros reales desde el backend (GET /api/historial)
+ * y los muestra con filtros por módulo y usuario, y exportación a CSV.
  * Accesible para todos los roles (solo lectura).
- * Depende de: utils.js, state.js, auth.js
+ * Depende de: utils.js, state.js, auth.js, kika.js
  * ============================================================
  */
 
@@ -34,10 +34,9 @@ const MOD_COLORS = {
 
 
 /**
- * Construye el HTML del pane de Historial.
- * Incluye filtros por módulo y usuario, y botón de exportación.
+ * Construye el HTML del pane de Historial y carga los datos reales.
  */
-function buildPaneHistorial() {
+async function buildPaneHistorial() {
   const pane = document.getElementById('pane-historial');
   if (!pane) return;
 
@@ -73,7 +72,44 @@ function buildPaneHistorial() {
   // Siempre usar el template local (los partials externos ya no se usan)
   pane.innerHTML = fallbackTemplate;
 
+  const list = document.getElementById('historial-list');
+  if (list) {
+    list.innerHTML = `
+      <div style="padding:24px;text-align:center;color:var(--tx3);font-style:italic">
+        Cargando historial…
+      </div>`;
+  }
+
+  await cargarHistorial();
   renderHistorial();
+}
+
+
+/**
+ * Trae los registros reales del historial desde el backend
+ * (GET /api/historial) y los deja en la var global HISTORIAL,
+ * con la fecha ya formateada para mostrar.
+ */
+async function cargarHistorial() {
+  try {
+    const res = await fetch(`${API_URL}/historial`, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.message || 'No se pudo cargar el historial');
+
+    HISTORIAL = json.data.map(h => ({
+      ...h,
+      ts: h.ts ? new Date(h.ts).toLocaleString('es-CO', {
+        day: '2-digit', month: '2-digit', year: '2-digit',
+        hour: 'numeric', minute: '2-digit'
+      }) : ''
+    }));
+  } catch (err) {
+    console.error('Error cargando historial:', err);
+    HISTORIAL = [];
+    toast('No se pudo cargar el historial', 'error');
+  }
 }
 
 
@@ -111,11 +147,11 @@ function renderHistorial() {
 
   // Renderizar filas del historial
   list.innerHTML = rows.map(h => {
-    // Color del badge según rol del usuario
-    const badgeClass = h.role === 'Administrador'     ? 'bg'
-                     : h.role === 'Jefe de Finanzas'  ? 'bb'
-                     : h.role === 'Jefe Materia Prima' ? 'ba'
-                     : 'bp'; // Jefe de Diseño = púrpura
+    // Color del badge según el rol real del usuario (rol.Nombre en BD)
+    const badgeClass = h.role === 'Administrador' ? 'bg'
+                     : h.role === 'Costeo'         ? 'bb'
+                     : h.role === 'Materia Prima'  ? 'ba'
+                     : 'bp'; // Consulta u otros
 
     return `
       <div class="hist-row">

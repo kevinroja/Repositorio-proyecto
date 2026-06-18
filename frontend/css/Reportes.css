@@ -1,0 +1,126 @@
+/* ── reportes.css ── */
+/* Estilos propios del módulo Reportes (solo lo que kika.css no cubre) */
+
+.rep-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.metric-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+  border-left: 3px solid var(--teal);
+}
+.metric-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-sec);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.metric-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-top: 4px;
+  color: var(--navy);
+}
+.metric-value.teal  { color: var(--teal); }
+.metric-value.green { color: var(--green); }
+.metric-value.gold  { color: #8a6a00; }
+
+/* Tabla wrapper */
+.table-wrap {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  max-width: 940px;
+  margin: 0 auto;
+}
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gray-mid);
+}
+
+/* Badges extra para historial */
+.badge-insert { background: var(--teal-bg);  color: var(--teal);  border: 1px solid var(--teal); }
+.badge-update { background: var(--gold-bg);  color: #8a6a00;     border: 1px solid var(--gold); }
+.badge-delete { background: #fdecea;         color: var(--red);  border: 1px solid var(--red); }
+.badge-tela   { background: var(--teal-bg);  color: var(--teal);  border: 1px solid var(--teal); }
+.badge-insumo { background: #e8f5ee;         color: var(--green); border: 1px solid var(--green); }
+
+/* Filtros — reutiliza consulta-filters pero con max-width */
+.rep-filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.rep-filters .field-group { display: flex; flex-direction: column; gap: 4px; }
+.filter-panel { display: none; }
+.filter-panel.active { display: flex; }
+
+/* spinner */
+.rep-spinner {
+  display: inline-block; width: 18px; height: 18px;
+  border: 2px solid var(--gray-mid); border-top-color: var(--teal);
+  border-radius: 50%; animation: spin .7s linear infinite; margin-right: 6px;
+}
+
+/* ── Toast (reemplazo de alert()) ── */
+#repToastContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+.rep-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--white);
+  color: var(--navy);
+  border-left: 4px solid var(--teal);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 240px;
+  max-width: 360px;
+  pointer-events: auto;
+  animation: rep-toast-in .25s ease-out;
+}
+.rep-toast.warning { border-left-color: var(--gold); }
+.rep-toast.success { border-left-color: var(--green); }
+.rep-toast.error   { border-left-color: var(--red); }
+.rep-toast i { font-size: 18px; flex-shrink: 0; }
+.rep-toast.info    i { color: var(--teal); }
+.rep-toast.warning i { color: #8a6a00; }
+.rep-toast.success i { color: var(--green); }
+.rep-toast.error   i { color: var(--red); }
+.rep-toast.fade-out { animation: rep-toast-out .25s ease-in forwards; }
+
+@keyframes rep-toast-in  { from{opacity:0; transform:translateX(20px);} to{opacity:1; transform:translateX(0);} }
+@keyframes rep-toast-out { from{opacity:1; transform:translateX(0);} to{opacity:0; transform:translateX(20px);} }

@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reportes — Kika</title>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/kika.css">
+  <link rel="stylesheet" href="../../css/reportes.css">
+</head>
+
+<body class="page-form">
+
+  <div id="repToastContainer"></div>
+
+  <!-- ── Cabecera tipo form-card-header ── -->
+  <div style="max-width:940px;margin:0 auto 18px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <h2 style="font-family:'Syne',sans-serif;font-size:18px;color:var(--navy);display:flex;align-items:center;gap:8px;">
+          <i class="ri-bar-chart-box-line" style="color:var(--teal);font-size:20px;"></i>
+          Reportes
+        </h2>
+        <p style="font-size:12px;color:var(--text-sec);margin-top:3px;">Consulta y exporta información de colecciones, prendas, materiales y más</p>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="exportarCSV()">
+        <i class="ri-download-2-line"></i> Exportar Excel
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Tabs ── -->
+  <div class="costeo-tabs">
+    <button class="costeo-tab active" onclick="cambiarTab('colecciones',this)">
+      <i class="ri-folder-line"></i> <span>Colecciones</span>
+    </button>
+    <button class="costeo-tab" onclick="cambiarTab('prendas',this)">
+      <i class="ri-shirt-line"></i> <span>Prendas</span>
+    </button>
+    <button class="costeo-tab" onclick="cambiarTab('materiales',this)">
+      <i class="ri-scissors-cut-line"></i> <span>Materiales</span>
+    </button>
+    <button class="costeo-tab" onclick="cambiarTab('precios-canal',this)">
+      <i class="ri-store-line"></i> <span>Precios por Canal</span>
+    </button>
+    <button class="costeo-tab" onclick="cambiarTab('historial',this)">
+      <i class="ri-history-line"></i> <span>Historial</span>
+    </button>
+  </div>
+
+  <!-- ── Filtros por tab ── -->
+
+  <!-- COLECCIONES -->
+  <div class="rep-filters filter-panel active" id="filtros-colecciones">
+    <div class="field-group">
+      <label class="field-label">Año</label>
+      <select id="f-col-año" class="field-input" style="min-width:140px;"><option value="">Todos</option></select>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Temporada</label>
+      <select id="f-col-temporada" class="field-input" style="min-width:140px;"><option value="">Todas</option></select>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="cargarReporte()">
+      <i class="ri-search-line"></i> Consultar
+    </button>
+    <button class="btn btn-cancel btn-sm" onclick="limpiarFiltros()">
+      <i class="ri-close-line"></i> Limpiar
+    </button>
+  </div>
+
+  <!-- PRENDAS -->
+  <div class="rep-filters filter-panel" id="filtros-prendas">
+    <div class="field-group">
+      <label class="field-label">Colección</label>
+      <select id="f-pre-coleccion" class="field-input" style="min-width:180px;"><option value="">Todas</option></select>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Referencia</label>
+      <input type="text" id="f-pre-referencia" class="field-input" placeholder="Buscar referencia..." style="min-width:160px;" />
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="cargarReporte()">
+      <i class="ri-search-line"></i> Consultar
+    </button>
+    <button class="btn btn-cancel btn-sm" onclick="limpiarFiltros()">
+      <i class="ri-close-line"></i> Limpiar
+    </button>
+  </div>
+
+  <!-- MATERIALES -->
+  <div class="rep-filters filter-panel" id="filtros-materiales">
+    <div class="field-group">
+      <label class="field-label">Tipo</label>
+      <select id="f-mat-tipo" class="field-input" style="min-width:130px;">
+        <option value="">Todos</option>
+        <option value="Tela">Tela</option>
+        <option value="Insumo">Insumo</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Proveedor</label>
+      <select id="f-mat-proveedor" class="field-input" style="min-width:160px;"><option value="">Todos</option></select>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="cargarReporte()">
+      <i class="ri-search-line"></i> Consultar
+    </button>
+    <button class="btn btn-cancel btn-sm" onclick="limpiarFiltros()">
+      <i class="ri-close-line"></i> Limpiar
+    </button>
+  </div>
+
+  <!-- PRECIOS CANAL -->
+  <div class="rep-filters filter-panel" id="filtros-precios-canal">
+    <div class="field-group">
+      <label class="field-label">Colección</label>
+      <select id="f-pc-coleccion" class="field-input" style="min-width:180px;"><option value="">Todas</option></select>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Canal de Venta</label>
+      <select id="f-pc-canal" class="field-input" style="min-width:160px;"><option value="">Todos</option></select>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="cargarReporte()">
+      <i class="ri-search-line"></i> Consultar
+    </button>
+    <button class="btn btn-cancel btn-sm" onclick="limpiarFiltros()">
+      <i class="ri-close-line"></i> Limpiar
+    </button>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="rep-filters filter-panel" id="filtros-historial">
+    <div class="field-group">
+      <label class="field-label">Tabla</label>
+      <select id="f-his-tabla" class="field-input" style="min-width:140px;">
+        <option value="">Todas</option>
+        <option value="material">Material</option>
+        <option value="prenda">Prenda</option>
+        <option value="costo_prenda">Costo Prenda</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Acción</label>
+      <select id="f-his-accion" class="field-input" style="min-width:120px;">
+        <option value="">Todas</option>
+        <option value="INSERT">INSERT</option>
+        <option value="UPDATE">UPDATE</option>
+        <option value="DELETE">DELETE</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Desde</label>
+      <input type="date" id="f-his-desde" class="field-input" />
+    </div>
+    <div class="field-group">
+      <label class="field-label">Hasta</label>
+      <input type="date" id="f-his-hasta" class="field-input" />
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="cargarReporte()">
+      <i class="ri-search-line"></i> Consultar
+    </button>
+    <button class="btn btn-cancel btn-sm" onclick="limpiarFiltros()">
+      <i class="ri-close-line"></i> Limpiar
+    </button>
+  </div>
+
+  <!-- ── Métricas ── -->
+  <div class="rep-metrics" id="repMetricas"></div>
+
+  <!-- ── Tabla ── -->
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <span class="results-count" id="repCount"><strong>—</strong> registros</span>
+    </div>
+    <div id="repTabla">
+      <div class="empty-state" style="padding:48px 16px;">
+        <i class="ri-bar-chart-2-line" style="font-size:36px;color:var(--gray-mid);display:block;margin-bottom:10px;"></i>
+        Selecciona un tipo de reporte y presiona <strong>Consultar</strong>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const API     = '/api/reportes';
+  const TOKEN   = () => (window.parent?.kikaToken || localStorage.getItem('token'));
+  const HEADERS = () => ({ 'Authorization': `Bearer ${TOKEN()}`, 'Content-Type': 'application/json' });
+
+  let tabActual     = 'colecciones';
+  let datosActuales = [];
+
+  // ── Init ──────────────────────────────────────────────────────
+  async function init() {
+    try {
+      const res  = await fetch(`${API}/filtros`, { headers: HEADERS() });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.message);
+
+      poblarSelect('f-col-año',       json.años,        'Año',          'Año');
+      poblarSelect('f-col-temporada', json.temporadas,  'Temporada',    'Temporada');
+      poblarSelect('f-pre-coleccion', json.colecciones, 'idCOLECCION',  'NombreColeccion');
+      poblarSelect('f-pc-coleccion',  json.colecciones, 'idCOLECCION',  'NombreColeccion');
+      poblarSelect('f-mat-proveedor', json.proveedores, 'idPROVEEDOR',  'Nombre');
+      poblarSelect('f-pc-canal',      json.canales,     'idCanal',      'Nombre');
+
+      cargarReporte();
+    } catch (e) {
+      console.error('Error cargando filtros:', e);
+    }
+  }
+
+  function poblarSelect(id, items, valKey, labelKey) {
+    const sel = document.getElementById(id);
+    if (!sel || !items) return;
+    items.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value       = item[valKey] ?? '';
+      opt.textContent = item[labelKey] ?? '';
+      sel.appendChild(opt);
+    });
+  }
+
+  // ── Cambiar tab ───────────────────────────────────────────────
+  function cambiarTab(tab, el) {
+    tabActual = tab;
+    document.querySelectorAll('.costeo-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.filter-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`filtros-${tab}`)?.classList.add('active');
+    document.getElementById('repMetricas').innerHTML = '';
+    document.getElementById('repTabla').innerHTML =
+      '<div class="empty-state" style="padding:40px 16px;"><i class="ri-search-line" style="font-size:28px;display:block;margin-bottom:8px;opacity:.35;"></i>Presiona <strong>Consultar</strong> para ver datos</div>';
+    document.getElementById('repCount').innerHTML = '<strong>—</strong> registros';
+    datosActuales = [];
+  }
+
+  function limpiarFiltros() {
+    document.querySelectorAll('.filter-panel.active select').forEach(s => s.value = '');
+    document.querySelectorAll('.filter-panel.active input').forEach(i => i.value = '');
+  }
+
+  // ── Cargar reporte ────────────────────────────────────────────
+  async function cargarReporte() {
+    mostrarLoading();
+    const params = obtenerFiltros();
+    try {
+      const res  = await fetch(`${API}/${tabActual}?${params}`, { headers: HEADERS() });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.message);
+
+      datosActuales = json.data;
+      document.getElementById('repCount').innerHTML = `<strong>${datosActuales.length}</strong> registro(s)`;
+      renderMetricas(datosActuales);
+      renderTabla(datosActuales);
+    } catch (err) {
+      document.getElementById('repTabla').innerHTML =
+        `<div class="empty-state" style="padding:40px 16px;color:var(--red);"><i class="ri-error-warning-line" style="font-size:28px;display:block;margin-bottom:8px;"></i>${err.message}</div>`;
+    }
+  }
+
+  function obtenerFiltros() {
+    const p = new URLSearchParams();
+    const mapas = {
+      'colecciones':   [['f-col-año','año'],['f-col-temporada','temporada']],
+      'prendas':       [['f-pre-coleccion','coleccion_id'],['f-pre-referencia','referencia']],
+      'materiales':    [['f-mat-tipo','tipo'],['f-mat-proveedor','proveedor_id']],
+      'precios-canal': [['f-pc-coleccion','coleccion_id'],['f-pc-canal','canal_id']],
+      'historial':     [['f-his-tabla','tabla'],['f-his-accion','accion'],['f-his-desde','desde'],['f-his-hasta','hasta']],
+    };
+    (mapas[tabActual] || []).forEach(([id, key]) => {
+      const el = document.getElementById(id);
+      if (el && el.value) p.append(key, el.value);
+    });
+    return p.toString();
+  }
+
+  function mostrarLoading() {
+    document.getElementById('repTabla').innerHTML =
+      '<div class="loading-state"><i class="ri-loader-4-line"></i>Cargando reporte...</div>';
+    document.getElementById('repMetricas').innerHTML = '';
+  }
+
+  // ── Métricas ──────────────────────────────────────────────────
+  function renderMetricas(data) {
+    const el = document.getElementById('repMetricas');
+    if (!data.length) { el.innerHTML = ''; return; }
+
+    let metrics = [];
+    if (tabActual === 'colecciones') {
+      const totalPrendas = data.reduce((s,r) => s + Number(r.total_prendas), 0);
+      const totalCosto   = data.reduce((s,r) => s + Number(r.suma_costo_total), 0);
+      metrics = [
+        { label:'Colecciones',   value: data.length,           cls:'teal' },
+        { label:'Total Prendas', value: totalPrendas,          cls:'' },
+        { label:'Costo Total',   value: '$' + fmt(totalCosto), cls:'green' },
+      ];
+    } else if (tabActual === 'prendas') {
+      const totalCosto = data.reduce((s,r) => s + Number(r.Costo_total||0), 0);
+      const conPrecio  = data.filter(r => r.precio_venta_final).length;
+      metrics = [
+        { label:'Prendas',    value: data.length,           cls:'teal' },
+        { label:'Con precio', value: conPrecio,              cls:'' },
+        { label:'Costo Total',value: '$' + fmt(totalCosto), cls:'green' },
+      ];
+    } else if (tabActual === 'materiales') {
+      metrics = [
+        { label:'Materiales', value: data.length,                              cls:'teal' },
+        { label:'Telas',      value: data.filter(r=>r.Tipo==='Tela').length,   cls:'' },
+        { label:'Insumos',    value: data.filter(r=>r.Tipo==='Insumo').length, cls:'' },
+      ];
+    } else if (tabActual === 'precios-canal') {
+      const promUSD = data.reduce((s,r)=>s+Number(r.Precio_venta_USD||0),0)/(data.length||1);
+      const promCOP = data.reduce((s,r)=>s+Number(r.Precio_venta_cop||0),0)/(data.length||1);
+      metrics = [
+        { label:'Registros', value: data.length,             cls:'teal' },
+        { label:'Prom. USD', value: 'US$'+fmt(promUSD,2),    cls:'' },
+        { label:'Prom. COP', value: '$'+fmt(promCOP),        cls:'green' },
+      ];
+    } else if (tabActual === 'historial') {
+      metrics = [
+        { label:'Total',   value: data.length,                                    cls:'teal' },
+        { label:'INSERT',  value: data.filter(r=>r.Accion==='INSERT').length,     cls:'' },
+        { label:'UPDATE',  value: data.filter(r=>r.Accion==='UPDATE').length,     cls:'gold' },
+        { label:'DELETE',  value: data.filter(r=>r.Accion==='DELETE').length,     cls:'' },
+      ];
+    }
+
+    el.innerHTML = metrics.map(m =>
+      `<div class="metric-card">
+         <div class="metric-label">${m.label}</div>
+         <div class="metric-value ${m.cls}">${m.value}</div>
+       </div>`
+    ).join('');
+  }
+
+  // ── Columnas por tab ──────────────────────────────────────────
+  const COLUMNAS = {
+    'colecciones': [
+      { k:'NombreColeccion',   l:'Colección',     bold:true },
+      { k:'Temporada',         l:'Temporada' },
+      { k:'Año',               l:'Año' },
+      { k:'total_prendas',     l:'Prendas' },
+      { k:'suma_materiales',   l:'Materiales',    f:fMoneda },
+      { k:'suma_insumos_var',  l:'Ins. Variable', f:fMoneda },
+      { k:'suma_insumos_fijos',l:'Ins. Fijos',    f:fMoneda },
+      { k:'suma_confeccion',   l:'Confección',    f:fMoneda },
+      { k:'suma_costo_total',  l:'Costo Total',   f:fMoneda, bold:true },
+    ],
+    'prendas': [
+      { k:'Referencia',         l:'Referencia',    bold:true },
+      { k:'NombreColeccion',    l:'Colección' },
+      { k:'Temporada',          l:'Temporada' },
+      { k:'Año',                l:'Año' },
+      { k:'ttl_materiales',     l:'Materiales',    f:fMoneda },
+      { k:'ttl_insumos_var',    l:'Ins. Variable', f:fMoneda },
+      { k:'ttl_insumos_fijos',  l:'Ins. Fijos',    f:fMoneda },
+      { k:'Costo_confeccion',   l:'Confección',    f:fMoneda },
+      { k:'Costo_total',        l:'Costo Total',   f:fMoneda, bold:true },
+      { k:'precio_venta_final', l:'Precio Venta',  f:fMoneda },
+      { k:'trm',                l:'TRM',           f:fMoneda2 },
+    ],
+    'materiales': [
+      { k:'material',            l:'Material',       bold:true },
+      { k:'Tipo',                l:'Tipo',            f:fTipo },
+      { k:'Unidad',              l:'Unidad' },
+      { k:'Precio_Unitario',     l:'Precio Unit.',    f:fMoneda },
+      { k:'proveedor',           l:'Proveedor' },
+      { k:'variantes_duplicadas',l:'Variantes' },
+      { k:'usado_en_telas',      l:'Uso Telas' },
+      { k:'usado_en_insumos',    l:'Uso Insumos' },
+      { k:'total_metros_usados', l:'Total Metros',    f:v=>fmt(v,2) },
+      { k:'costo_total_telas',   l:'Costo Telas',     f:fMoneda },
+      { k:'costo_total_insumos', l:'Costo Insumos',   f:fMoneda },
+    ],
+    'precios-canal': [
+      { k:'Referencia',      l:'Referencia',    bold:true },
+      { k:'NombreColeccion', l:'Colección' },
+      { k:'canal',           l:'Canal' },
+      { k:'Kv_markup',       l:'KV Markup',     f:fPct },
+      { k:'Ajuste_USD',      l:'Ajuste USD',    f:fPct },
+      { k:'Margen_extra',    l:'Margen Extra',  f:fPct },
+      { k:'Sub_total1',      l:'Subtotal 1',    f:fMoneda },
+      { k:'Sub_total2',      l:'Subtotal 2',    f:fMoneda },
+      { k:'Precio_venta_cop',l:'Precio COP',    f:fMoneda, bold:true },
+      { k:'Precio_venta_USD',l:'Precio USD',    f:fMoneda2, bold:true },
+      { k:'trm',             l:'TRM',           f:fMoneda2 },
+    ],
+    'historial': [
+      { k:'Fecha',          l:'Fecha',     f:fFechaHora },
+      { k:'usuario',        l:'Usuario' },
+      { k:'Tabla_afectada', l:'Tabla' },
+      { k:'Registro_id',    l:'ID Reg.' },
+      { k:'Campo',          l:'Campo' },
+      { k:'Accion',         l:'Acción',    f:fAccion },
+      { k:'Valor_anterior', l:'Anterior' },
+      { k:'Valor_nuevo',    l:'Nuevo',     bold:true },
+    ],
+  };
+
+  function renderTabla(data) {
+    const cols = COLUMNAS[tabActual] || [];
+    if (!data.length) {
+      document.getElementById('repTabla').innerHTML =
+        '<div class="empty-state" style="padding:40px 16px;"><i class="ri-inbox-line" style="font-size:28px;display:block;margin-bottom:8px;opacity:.35;"></i>Sin resultados para los filtros seleccionados</div>';
+      return;
+    }
+    const thead = `<thead><tr>${cols.map(c=>`<th>${c.l}</th>`).join('')}</tr></thead>`;
+    const tbody = data.map(row => {
+      const celdas = cols.map(c => {
+        const raw = row[c.k];
+        const val = c.f ? c.f(raw) : (raw ?? '—');
+        return `<td${c.bold?' style="font-weight:700"':''}>${val}</td>`;
+      }).join('');
+      return `<tr>${celdas}</tr>`;
+    }).join('');
+    document.getElementById('repTabla').innerHTML =
+      `<div style="overflow-x:auto;"><table class="data-table">${thead}<tbody>${tbody}</tbody></table></div>`;
+  }
+
+  // ── Formateadores ─────────────────────────────────────────────
+  function fmt(v, dec=0)  { return Number(v||0).toLocaleString('es-CO',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
+  function fMoneda(v)     { return v!=null ? '$'+fmt(v,2) : '—'; }
+  function fMoneda2(v)    { return v!=null ? 'US$'+fmt(v,2) : '—'; }
+  function fPct(v)        { return v!=null ? fmt(v,2)+'%' : '—'; }
+  function fFecha(v)      { if(!v) return '—'; return new Date(v).toLocaleDateString('es-CO'); }
+  function fFechaHora(v)  { if(!v) return '—'; return new Date(v).toLocaleString('es-CO'); }
+  function fTipo(v) {
+    if(!v) return '—';
+    const cls = v==='Tela' ? 'badge-tela' : 'badge-insumo';
+    return `<span class="badge ${cls}">${v}</span>`;
+  }
+  function fAccion(v) {
+    if(!v) return '—';
+    const cls = {INSERT:'badge-insert',UPDATE:'badge-update',DELETE:'badge-delete'}[v]||'';
+    return `<span class="badge ${cls}">${v}</span>`;
+  }
+
+  // ── Toast (reemplaza alert()) ──────────────────────────────────
+  function toastReporte(msg, type = 'info') {
+    const icons = {
+      info:    'ri-information-line',
+      success: 'ri-checkbox-circle-line',
+      warning: 'ri-error-warning-line',
+      error:   'ri-close-circle-line',
+    };
+    const container = document.getElementById('repToastContainer');
+    if (!container) return;
+    const el = document.createElement('div');
+    el.className = `rep-toast ${type}`;
+    el.innerHTML = `<i class="${icons[type] || icons.info}"></i><span>${msg}</span>`;
+    container.appendChild(el);
+    setTimeout(() => {
+      el.classList.add('fade-out');
+      setTimeout(() => el.remove(), 250);
+    }, 3000);
+  }
+
+  // ── Exportar CSV ──────────────────────────────────────────────
+  async function exportarCSV() {
+    if(!datosActuales.length) { toastReporte('No hay datos para exportar.', 'warning'); return; }
+    const params = obtenerFiltros();
+    const url = `${API}/${tabActual}?${params}${params ? '&' : ''}export=excel`;
+    try {
+      const resp = await fetch(url, { headers: HEADERS() });
+      if (!resp.ok) { toastReporte('Error al generar el archivo Excel.', 'error'); return; }
+      const blob = await resp.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `reporte-${tabActual}-${new Date().toISOString().slice(0,10)}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toastReporte('Reporte exportado correctamente.', 'success');
+    } catch (err) {
+      console.error('[Exportar Excel]', err);
+      toastReporte('Error al generar el archivo Excel.', 'error');
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

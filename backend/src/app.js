@@ -6,6 +6,11 @@ const usuarioRoutes   = require('./src/routes/usuario.routes');
 const coleccionRoutes = require('./src/routes/coleccionRoutes');
 const prendaRoutes    = require('./src/routes/prenda.routes');
 const soporteRoutes   = require('./src/routes/soporte.routes');
+const reportsRoutes   = require('./src/routes/reports.routes');
+const costeoRoutes    = require('./src/routes/costeo.routes');
+
+// authMiddleware verifica el JWT en cada petición protegida
+const { authMiddleware } = require('./src/middlewares/auth.middleware');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +25,8 @@ app.use('/api/usuarios',    usuarioRoutes);
 app.use('/api/colecciones', coleccionRoutes);
 app.use('/api/prendas',     prendaRoutes);
 app.use('/api/soporte',     soporteRoutes);
+app.use('/api/reportes',    authMiddleware, reportsRoutes);
+app.use('/api/costeo',      authMiddleware, costeoRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Servidor corriendo', timestamp: new Date() });
