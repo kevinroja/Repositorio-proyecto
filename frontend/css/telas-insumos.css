@@ -1,0 +1,38 @@
+/*
+  css/telas-insumos.css — Específico del módulo Telas & Insumos
+  Requiere: costeo-core.css (cards, xgrid, botones, modal, badges...)
+*/
+
+/* ══════ ZONA DE CARGA DE EXCEL ══════ */
+.upload-zone{border:2px dashed var(--bd2);border-radius:var(--r2);padding:22px;text-align:center;color:var(--tx3);font-size:12px;cursor:pointer;transition:all .15s;margin-bottom:14px;background:var(--wh)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--g3);background:var(--gxlt);color:var(--g1)}
+.upload-zone .big{font-size:28px;display:block;margin-bottom:6px}
+
+/* ══════ COLUMNA REFERENCIA FIJA (hack translateX) ══════
+   El scroll horizontal real ocurre en <body>, no dentro de .xgrid-wrap
+   (que crece con min-width:max-content junto con su contenido), así que
+   position:sticky no tiene ningún ancestro útil al que anclarse. Se
+   compensa con un transform:translateX() vía JS (script propio en
+   telas-insumos.html) que sigue el scrollLeft del body. Sigue
+   pendiente de una solución más limpia (anotado en memoria del proyecto). */
+html, body{height:100%;margin:0;padding:0;overflow:auto}
+#content-wrap{height:auto;overflow:visible;min-width:max-content}
+
+.xgrid th.fr,
+.xgrid td.fr{
+  position:relative !important;
+  z-index:50;
+  will-change:transform;
+  min-width:200px;
+  max-width:200px;
+  background:var(--wh);
+}
+.xgrid th.fr{background:#F4F1EB !important}
+.xgrid .xr:nth-child(even) td.fr{background:#FAFAF7 !important}
+.xgrid .xr td.fr.ttl{background:var(--glt) !important}
+.xgrid .xr td.fr.sub{background:var(--amlt) !important}
+.xgrid .xr td.fr.fin{background:#FEE2A0 !important}
+
+/* Toolbar del módulo: queda fija arriba mientras el body hace scroll */
+#module-toolbar{position:fixed;top:0;left:0;right:0;z-index:200}
+#toolbar-spacer{height:0;flex-shrink:0}

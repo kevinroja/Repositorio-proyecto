@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<!--
+  telas-insumos.html — Módulo de Telas & Insumos (Costeo Textil)
+  Se carga dentro del iframe de Interfas_Admin.html.
+  NO tiene login propio: toma el token y rol del shell padre (window.parent).
+  Roles permitidos: 4 (Admin), 1 (Materia Prima).
+
+  Refactor: antes era una pestaña dentro de producto.html (junto con
+  Consolidado, Canales, Colecciones, Consulta e Historial). Ahora es un
+  archivo independiente — Telas y Insumos se mantienen juntos aquí porque
+  comparten la misma barra de herramientas y dependen entre sí (referencias
+  de Telas alimentan la grilla de Insumos).
+-->
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>KV · Telas &amp; Insumos</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/costeo-core.css">
+  <link rel="stylesheet" href="../../css/telas-insumos.css">
+</head>
+<body>
+
+<div id="module-toolbar"></div>
+<!-- Espaciador dinámico: empuja el contenido para que no quede bajo el toolbar fijo -->
+<div id="toolbar-spacer"></div>
+
+<!-- ── ÁREA DE CONTENIDO ── -->
+<div id="content-wrap">
+  <div id="pane-materia" class="pane active" style="padding:20px"></div>
+</div>
+
+
+<!-- ── MODAL: INSUMOS FIJOS ──────────────────────────────────
+     Insumos que se aplican automáticamente a TODAS las prendas. -->
+<div id="fijos-modal" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>⚙ Insumos Fijos — Aplican a TODAS las referencias</h3>
+      <button class="btn-del" onclick="closeFijosModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:11px;color:var(--tx3);margin-bottom:10px">
+        Se suman automáticamente a cada prenda. Cambia precio o cantidad → el total se recalcula.
+      </p>
+      <table class="xgrid" style="width:100%">
+        <thead><tr>
+          <th>Insumo Fijo</th>
+          <th class="num">Precio/Unid</th>
+          <th class="num">Cantidad</th>
+          <th class="num ttl">TTL/Prenda</th>
+          <th style="width:28px"></th>
+        </tr></thead>
+        <tbody id="fijos-body"></tbody>
+        <tfoot><tr>
+          <td colspan="3" style="text-align:right;padding:6px 8px;font-weight:700;font-size:11px">TOTAL FIJOS/PRENDA</td>
+          <td class="ttl num" style="padding:4px 8px;font-family:var(--mono);font-weight:700" id="fijos-total-modal">$ 0</td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn btn-o btn-sm" onclick="addFijoRow()">+ Agregar</button>
+        <button class="btn btn-o btn-sm" onclick="seedFijos()">Cargar defaults Excel</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-g" onclick="closeFijosModal()">Aplicar y cerrar</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="toast"></div>
+
+
+<!-- ── SCRIPTS DEL MÓDULO (el orden importa) ── -->
+<script src="../../js/utils.js"></script>
+<script src="../../js/state.js"></script>
+<script src="../../js/calculator.js"></script>
+<script src="../../js/auth-shared.js"></script>
+<script src="../../js/pane-telas.js"></script>
+<script src="../../js/pane-insumos.js"></script>
+<script src="../../js/telas-insumos-excel.js"></script>
+<script src="../../js/xgrid-keynav.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+  // ── Inicialización: toma los datos de sesión del shell padre ──
+  (function initFromKika() {
+    const par     = window.parent;
+    const token   = par?.kikaToken   || sessionStorage.getItem('kika_token');
+    const usuario = par?.kikaUsuario || JSON.parse(sessionStorage.getItem('kika_usuario') || 'null');
+    const rolKika = parseInt(par?.kikaRol) || parseInt(sessionStorage.getItem('kika_rol') || '0');
+
+    if (par?.kikaToken && par.kikaToken !== 'consulta_guest') {
+      sessionStorage.setItem('kika_token',   par.kikaToken);
+      sessionStorage.setItem('kika_usuario', JSON.stringify(par.kikaUsuario));
+      sessionStorage.setItem('kika_rol',     String(par.kikaRol));
+    }
+
+    if (!token || !usuario || token === 'consulta_guest') {
+      document.body.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;
+                    justify-content:center;height:100vh;gap:16px;
+                    font-family:'DM Sans',sans-serif;color:#5C574F;background:#EFECE4">
+          <div style="font-size:48px">🔒</div>
+          <div style="font-size:16px;font-weight:700;color:#1A1714">Sesión no encontrada</div>
+          <div style="font-size:13px">Inicia sesión desde el panel principal de Kika.</div>
+        </div>`;
+      return;
+    }
+
+    // Kika: 4=admin, 1=materia_prima — únicos roles con acceso a este módulo
+    const ROL_MAP   = { 4: 'admin', 1: 'materia_prima' };
+    const rolCosteo = ROL_MAP[rolKika];
+
+    if (!rolCosteo) {
+      document.body.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;
+                    justify-content:center;height:100vh;gap:16px;
+                    font-family:'DM Sans',sans-serif;color:#5C574F;background:#EFECE4">
+          <div style="font-size:48px">⛔</div>
+          <div style="font-size:16px;font-weight:700;color:#1A1714">Acceso no autorizado</div>
+          <div style="font-size:13px">
+            El módulo de Telas &amp; Insumos está disponible para:<br>
+            <b>Administrador · Materia Prima</b>
+          </div>
+        </div>`;
+      return;
+    }
+
+    currentUser = { name: usuario.Nombre, role: rolCosteo, token: token };
+
+    buildPaneMateria();
+
+    addHist('Accedió al módulo de Telas & Insumos', 'Telas',
+      `${usuario.Nombre} (Rol Kika: ${rolKika})`);
+  })();
+</script>
+
+<script>
+  // Actualiza el espaciador cada vez que el toolbar cambia de altura
+  function syncToolbarSpacer() {
+    const tb = document.getElementById('module-toolbar');
+    const sp = document.getElementById('toolbar-spacer');
+    if (tb && sp) sp.style.height = tb.offsetHeight + 'px';
+  }
+  // Llamada inicial explícita — resizeObserver por sí solo no alcanza
+  document.addEventListener('DOMContentLoaded', syncToolbarSpacer);
+
+  // ── FIJAR COLUMNA REFERENCIA DURANTE EL SCROLL HORIZONTAL ──
+  // Ver telas-insumos.css para la explicación completa de por qué
+  // position:sticky no basta en este layout.
+  function syncStickyRef() {
+    const x = window.scrollX || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
+    document.querySelectorAll('.xgrid th.fr, .xgrid td.fr').forEach(cell => {
+      cell.style.transform = x ? `translateX(${x}px)` : '';
+    });
+  }
+  window.addEventListener('scroll', syncStickyRef, { passive: true });
+
+  const _refObs = new MutationObserver(syncStickyRef);
+  document.addEventListener('DOMContentLoaded', () => {
+    syncStickyRef();
+    _refObs.observe(document.getElementById('content-wrap'), { childList: true, subtree: true });
+  });
+</script>
+
+</body>
+</html>

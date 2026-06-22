@@ -176,9 +176,6 @@ async function saveCollection() {
     closeColModal();
     await cargarColecciones();
 
-    if (activeTab === 'colecciones')
-      goTab('colecciones', document.getElementById('tab-colecciones'));
-
   } catch (err) {
     toast('❌ ' + err.message, 'error');
   }
@@ -200,9 +197,6 @@ async function deleteCollection(id) {
     addHist('Eliminó colección', 'Colecciones', c?.name);
     toast('✓ Colección eliminada');
     await cargarColecciones();
-
-    if (activeTab === 'colecciones')
-      goTab('colecciones', document.getElementById('tab-colecciones'));
 
   } catch (err) {
     toast('❌ ' + err.message, 'error');

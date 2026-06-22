@@ -43,7 +43,6 @@ function seedFijos() {
   FIJOS = DEFAULT_FIJOS.map(f => ({ id: ID(), ...f }));
   renderFijosModal();
   renderFijosSummary();
-  recalc();
   toast('✓ 7 insumos fijos cargados desde defaults Excel');
 }
 
@@ -78,7 +77,6 @@ function closeFijosModal() {
   document.getElementById('fijos-modal').style.display = 'none';
   renderFijosSummary();
   renderInsumos();
-  recalc();
 }
 
 
@@ -364,8 +362,6 @@ const edit = canEdit('insumos');
         </td>
       </tr>`;
   }).join('');
-
-  recalc();
 }
 
 

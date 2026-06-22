@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<!--
+  consulta.html — Módulo de Consulta (Costeo Textil)
+  Se carga dentro del iframe de Interfas_Admin.html.
+  NO tiene login propio: toma el token y rol del shell padre (window.parent).
+  Roles permitidos: 4 (Admin), 1 (Materia Prima), 2 (Costeo), 3 (Consulta) —
+  los precios de venta solo se muestran a Admin y Costeo (lo filtra pane-consulta.js).
+-->
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>KV · Consulta</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/costeo-core.css">
+  <link rel="stylesheet" href="../../css/consulta.css">
+</head>
+<body>
+
+<div id="content-wrap">
+  <div id="pane-consulta" class="pane active" style="padding:20px"></div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ── SCRIPTS DEL MÓDULO (el orden importa) ── -->
+<script src="../../js/utils.js"></script>
+<script src="../../js/state.js"></script>
+<script src="../../js/calculator.js"></script>
+<script src="../../js/auth-shared.js"></script>
+<script src="../../js/pane-consulta.js"></script>
+
+<script>
+  // ── Inicialización: toma los datos de sesión del shell padre ──
+  (function initFromKika() {
+    const par     = window.parent;
+    const token   = par?.kikaToken   || sessionStorage.getItem('kika_token');
+    const usuario = par?.kikaUsuario || JSON.parse(sessionStorage.getItem('kika_usuario') || 'null');
+    const rolKika = parseInt(par?.kikaRol) || parseInt(sessionStorage.getItem('kika_rol') || '0');
+
+    if (par?.kikaToken && par.kikaToken !== 'consulta_guest') {
+      sessionStorage.setItem('kika_token',   par.kikaToken);
+      sessionStorage.setItem('kika_usuario', JSON.stringify(par.kikaUsuario));
+      sessionStorage.setItem('kika_rol',     String(par.kikaRol));
+    }
+
+    if (!token || !usuario || token === 'consulta_guest') {
+      document.body.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;
+                    justify-content:center;height:100vh;gap:16px;
+                    font-family:'DM Sans',sans-serif;color:#5C574F;background:#EFECE4">
+          <div style="font-size:48px">🔒</div>
+          <div style="font-size:16px;font-weight:700;color:#1A1714">Sesión no encontrada</div>
+          <div style="font-size:13px">Inicia sesión desde el panel principal de Kika.</div>
+        </div>`;
+      return;
+    }
+
+    // Los 4 roles pueden usar Consulta (pane-consulta.js filtra precios por rol)
+    const ROL_MAP   = { 4: 'admin', 1: 'materia_prima', 2: 'finanzas', 3: 'consulta' };
+    const rolCosteo = ROL_MAP[rolKika];
+
+    if (!rolCosteo) {
+      document.body.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;
+                    justify-content:center;height:100vh;gap:16px;
+                    font-family:'DM Sans',sans-serif;color:#5C574F;background:#EFECE4">
+          <div style="font-size:48px">⛔</div>
+          <div style="font-size:16px;font-weight:700;color:#1A1714">Acceso no autorizado</div>
+          <div style="font-size:13px">Rol no reconocido. Inicia sesión nuevamente.</div>
+        </div>`;
+      return;
+    }
+
+    currentUser = { name: usuario.Nombre, role: rolCosteo, token: token };
+
+    buildPaneConsulta();
+
+    addHist('Accedió al módulo de Consulta', 'Consulta',
+      `${usuario.Nombre} (Rol Kika: ${rolKika})`);
+  })();
+</script>
+
+</body>
+</html>

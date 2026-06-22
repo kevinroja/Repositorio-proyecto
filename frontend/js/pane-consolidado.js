@@ -176,7 +176,7 @@ function buildPaneConsolidado() {
           <!-- Fila 1: Grupos de columnas -->
           <tr>
             <th class="fr" style="min-width:220px;max-width:220px;
-                                   background:var(--bg2);z-index:20;
+                                   background:#F4F1EB;z-index:20;
                                    box-shadow:2px 0 4px rgba(0,0,0,.08)" rowspan="2">REFERENCIA</th>
             <th colspan="5" class="gh-prod" style="text-align:center">PRODUCCIÓN COP</th>
             <th colspan="3" class="gh-con"  style="text-align:center">FINANCIERO</th>
@@ -419,6 +419,18 @@ function mapDBToState(prendas) {
  *   - Modificar ajuste o margen de una referencia
  *   - Cargar datos (demo o Excel)
  */
+
+
+/**
+ * Actualiza ajuste o margen de una referencia desde la grilla del Consolidado.
+ * NOTA: reubicada aquí desde pane-telas.js — es el único módulo que la usa.
+ */
+function updateTelaField(id, field, val) {
+  const r = TELAS.find(x => x.id === id);
+  if (r) { r[field] = D(val); recalc(); }
+}
+
+
 function recalc() {
   const tbody = document.getElementById('consol-body');
   if (!tbody) return;
@@ -447,13 +459,8 @@ function recalc() {
   // Generar filas HTML
   tbody.innerHTML = rows.map(({ ref, tId, ajuste, margen, c }) => `
     <tr class="xr">
-      <!-- Referencia (columna fija) -->
-      <td class="fr" style="font-weight:600;font-size:11px;
-                            background:var(--bg0);z-index:10;
-                            box-shadow:2px 0 4px rgba(0,0,0,.06)"
-          title="${esc(ref)}">
-        ${ref.length > 34 ? ref.slice(0, 32) + '…' : ref}
-      </td>
+    <td class="fr" style="font-weight:600;font-size:11px;z-index:10;box-shadow:2px 0 4px rgba(0,0,0,.06)" title="${esc(ref)}">${ref.length > 34 ? ref.slice(0, 32) + '…' : ref}</td>
+
       <!-- Costos COP -->
       <td class="num" style="font-family:var(--mono);font-size:11px">$${fmt(c.mat)}</td>
       <td class="num" style="font-family:var(--mono);font-size:11px">$${fmt(c.ins)}</td>
@@ -511,8 +518,13 @@ function recalc() {
 
   // Actualizar los KPIs del resumen
   updateMetrics(rows.map(r => r.c));
+  // Re-sincronizar columna fija tras regenerar el DOM
+   if (typeof syncStickyRef === 'function') {
+    setTimeout(syncStickyRef, 0);
+    setTimeout(syncStickyRef, 100);
+    setTimeout(syncStickyRef, 300);
+	}
 }
-
 
 /**
  * Actualiza las 4 métricas de resumen del Consolidado.

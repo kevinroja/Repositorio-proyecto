@@ -1,0 +1,12 @@
+/*
+  css/historial.css — Específico del módulo Historial
+  Requiere: costeo-core.css (cards, botones, badges, fg...)
+*/
+
+.hist-row{display:flex;gap:12px;padding:10px 14px;border-bottom:1px solid var(--bd);align-items:flex-start;font-size:12px;transition:background .1s}
+.hist-row:hover{background:#F9F8F5}
+.hist-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:1px}
+.hist-body{flex:1}
+.hist-action{font-weight:600;color:var(--tx)}
+.hist-detail{color:var(--tx3);font-size:11px;margin-top:2px}
+.hist-meta{font-size:10px;color:var(--tx3);white-space:nowrap;font-family:var(--mono)}

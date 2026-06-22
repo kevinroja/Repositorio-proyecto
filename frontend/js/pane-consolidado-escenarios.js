@@ -91,14 +91,14 @@ async function guardarEscenario() {
 
   const paramsGuardar = {
     trm:                params.trm,
-    kvMarkup:           params.mkup,
-    exportacionPct:     params.exp,
-    arancelesPct:       params.aran,
-    amerindias:         params.amer,
-    factoring:          params.fact,
-    pct10eleven:        params.ten,
-    imprevistos:        params.imprev,
-    costoFinancieroIva: params.fin,
+    kvMarkup:           params.kvMkup,
+    exportacionPct:     params.exp    * 100,
+    arancelesPct:       params.aran   * 100,
+    amerindias:         params.amer   * 100,
+    factoring:          params.fact   * 100,
+    pct10eleven:        params.ten11  * 100,
+    imprevistos:        params.imprev * 100,
+    costoFinancieroIva: params.finM   * 100,
     seguroAnualCop:     params.seg,
     nPrendas:           params.np,
   };

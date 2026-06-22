@@ -786,26 +786,130 @@ body.page-costeo {
 /* ============================================================
    15. RESPONSIVE
    ============================================================ */
+
+/* ── Tablet ancha: 1024px ── */
+@media (max-width: 1024px) {
+  .form-card        { max-width: 100%; }
+  .costeo-card      { max-width: 100%; }
+  .costeo-tabs      { max-width: 100%; }
+  .rep-metrics      { max-width: 100%; }
+  .table-wrap       { max-width: 100%; }
+  .rep-filters      { max-width: 100%; }
+  .precio-panel     { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Tablet: 768px ── */
 @media (max-width: 768px) {
-  .field-grid { grid-template-columns: 1fr; }
-  .field-grid .full { grid-column: 1; }
+  /* Layout shell */
   .sidebar {
     position: fixed;
     top: 56px; left: 0; bottom: 0;
     z-index: 200;
     transform: translateX(-100%);
+    box-shadow: 4px 0 20px rgba(0,0,0,.25);
   }
   .sidebar.open { transform: translateX(0); }
   .btn-hamburger { display: flex; }
+
+  /* Navbar */
+  .navbar { padding: 0 12px; }
+  .navbar .user-badge span:last-child { display: none; }
+
+  /* Login */
   .login-card { width: 92%; padding: 28px 18px; }
-  .form-actions { flex-wrap: wrap; }
-  body.page-form { padding: 12px; }
-  .costeo-tabs { flex-wrap: wrap; }
-  .precio-panel { grid-template-columns: 1fr 1fr; }
+
+  /* Formularios */
+  body.page-form   { padding: 12px; }
+  body.page-costeo { padding: 12px; }
+  .form-card-body  { padding: 14px; }
+  .costeo-card-body { padding: 14px; }
+  .field-grid      { grid-template-columns: 1fr; }
+  .field-grid .full { grid-column: 1; }
+  .field-grid .col3 { grid-template-columns: 1fr; }
+  .form-actions    { flex-wrap: wrap; gap: 8px; }
+  .form-actions .btn { flex: 1; justify-content: center; }
+
+  /* Costeo tabs */
+  .costeo-tabs     { flex-wrap: wrap; gap: 4px; }
+  .costeo-tab      { flex: 1 1 calc(50% - 4px); }
+
+  /* Panel precios */
+  .precio-panel    { grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px; }
+
+  /* Colecciones */
+  .coleccion-grid  { grid-template-columns: 1fr; }
+
+  /* Cards usuario/soporte */
+  body.page-user-form  { padding: 16px 10px; align-items: flex-start; }
+  body.page-support    { padding: 16px 10px; }
+  .user-card           { max-width: 100% !important; }
+  .support-card        { max-width: 100%; }
+  .ticket.user-row     { flex-direction: column; align-items: flex-start; }
+  .ticket.user-row .btn { align-self: flex-end; }
+
+  /* Tabla data */
+  .data-table th,
+  .data-table td  { padding: 8px 8px; font-size: 12px; }
+
+  /* Topnav */
+  .topnav         { display: none; }
+  .topnav.open    { display: flex; flex-direction: column; position: fixed;
+                    top: 56px; left: 0; right: 0; background: var(--navy);
+                    padding: 8px; z-index: 150; }
+
+  /* Filtros consulta */
+  .consulta-filters { flex-direction: column; }
+  .consulta-filters .field-input { min-width: 100%; }
+
+  /* Reportes */
+  .rep-filters    { flex-direction: column; }
+  .rep-filters .field-group { width: 100%; }
+  .table-toolbar  { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
+
+/* ── Móvil: 480px ── */
 @media (max-width: 480px) {
-  .precio-panel { grid-template-columns: 1fr; }
+  /* Navbar compacto */
+  .navbar         { padding: 0 10px; }
+  .btn-logout span { display: none; }
+
+  /* Login */
+  .login-card     { width: 100%; border-radius: 0; padding: 24px 16px; min-height: 100vh; justify-content: center; }
+
+  /* Precios: una columna */
+  .precio-panel   { grid-template-columns: 1fr; }
+  .precio-item.highlight .value { font-size: 20px; }
+
+  /* Tabs solo ícono */
   .costeo-tab span { display: none; }
+  .costeo-tab      { flex: 1 1 auto; padding: 9px 8px; }
+
+  /* Form card sin padding lateral */
+  .form-card-body  { padding: 12px 10px; }
+  .costeo-card-body { padding: 12px 10px; }
+
+  /* Tabla costeo — scroll horizontal */
+  .costeo-table    { font-size: 12px; }
+  .costeo-table th,
+  .costeo-table td { padding: 7px 8px; }
+
+  /* Modales full-width */
+  .modal-box       { width: calc(100vw - 24px); padding: 18px 14px; }
+
+  /* Toasts */
+  .toast-container { left: 12px; right: 12px; bottom: 12px; }
+  .toast           { max-width: 100%; }
+
+  /* Tallas: scroll horizontal */
+  .tallas-wrapper  { overflow-x: auto; }
+
+  /* Botones de acción apilados */
+  .form-actions    { flex-direction: column; }
+  .form-actions .btn { width: 100%; justify-content: center; }
+
+  /* Role grid login */
+  .role-grid       { grid-template-columns: 1fr; }
+  .role-btn.full   { flex-direction: column; }
 }
 
 /* ============================================================

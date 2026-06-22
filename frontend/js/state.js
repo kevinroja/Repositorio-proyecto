@@ -6,12 +6,22 @@
  *   'materia_prima' ← Kika rol 1 (Materia Prima)  — telas, insumos, colecciones
  *   'finanzas'      ← Kika rol 2 (Costeo)          — consolidado, canales, consulta
  *   'consulta'      ← Kika rol 3 (Consulta)         — solo lectura, sin credenciales
+ *
+ * NOTA (refactor módulos independientes): este archivo se carga igual en los
+ * 6 HTML del módulo de Costeo (telas-insumos, consolidado, canales,
+ * colecciones, consulta, historial). Cada uno usa solo las variables que
+ * necesita; mantenerlas todas aquí evita duplicar el generador de IDs y
+ * los arrays de datos en cada archivo por separado.
+ *
+ * Se quitaron TAB_DEFS y ROLES — existían para el tabstrip compartido y
+ * buildUI()/goTab(), que ya no existen al ser cada módulo un archivo
+ * independiente. El control de acceso por rol ahora vive directamente en
+ * cada pane-*.js (cada uno valida su propio currentUser.role al construirse).
  */
 
-// ── Sesión y navegación ──────────────────────────────────────
-var currentUser  = null;  // { name, role, token } — inyectado desde Costeo.html
-var activeTab    = null;
-var editingColId = null;
+// ── Sesión ────────────────────────────────────────────────────
+var currentUser  = null;  // { name, role, token } — inyectado desde el HTML de cada módulo
+var editingColId = null;  // usado por el módulo de Colecciones
 
 // ── Estado del Módulo Consulta ───────────────────────────────
 var consultaSelected = null;
@@ -22,44 +32,10 @@ var _uid = 1;
 const ID = () => '_' + (_uid++);
 
 // ── Base de datos en memoria ─────────────────────────────────
-// var (no let) para que sean accesibles en window desde cualquier script
+// var (no let) para que sean accesibles desde cualquier script cargado en la página
 var COLECCIONES = [];
 var TELAS       = [];
 var INSUMOS     = [];
 var FIJOS       = [];
 var CANALES     = [];
 var HISTORIAL   = [];
-
-// ── Roles internos del módulo de Costeo ──────────────────────
-const ROLES = {
-  admin: {
-    label: 'Administrador',
-    color: '#FFD166',
-    tabs: ['colecciones','materia','consolidado','canales','consulta','historial']
-  },
-  materia_prima: {
-    label: 'Jefe Materia Prima',
-    color: '#52B788',
-    tabs: ['colecciones','materia','consulta','historial']
-  },
-  finanzas: {
-    label: 'Costeo / Finanzas',
-    color: '#93C5FD',
-    tabs: ['colecciones','consolidado','canales','consulta','historial']
-  },
-  consulta: {
-    label: 'Consulta',
-    color: '#A78BFA',
-    tabs: ['consulta']
-  },
-};
-
-// ── Definición de tabs ───────────────────────────────────────
-const TAB_DEFS = [
-  { id: 'colecciones', icon: '🗂',  label: 'Colecciones'        },
-  { id: 'materia',     icon: '📐',  label: 'Telas & Confección' },
-  { id: 'consolidado', icon: '📊',  label: 'Consolidado'        },
-  { id: 'canales',     icon: '🏪',  label: 'Canal de Venta'     },
-  { id: 'consulta',    icon: '🔍',  label: 'Consulta'           },
-  { id: 'historial',   icon: '📋',  label: 'Historial'          },
-];

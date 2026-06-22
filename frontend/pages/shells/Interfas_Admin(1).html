@@ -30,7 +30,7 @@
 
       <!-- ── Colecciones: visible para todos los roles ── -->
       <div class="tn-group">
-        <button class="tn-btn" onclick="cargar('../producto/colecciones.html',this)">
+        <button class="tn-btn" onclick="cargar('../producto/producto.html?tab=colecciones',this)">
           <i class="ri-folder-line"></i> Colecciones
         </button>
       </div>
@@ -99,14 +99,14 @@
 
       <!-- ── Consulta: visible para todos los roles ── -->
       <div class="tn-group">
-        <button class="tn-btn" onclick="cargar('../producto/consulta.html',this)">
+        <button class="tn-btn" onclick="cargar('../producto/producto.html?tab=consulta',this)">
           <i class="ri-search-line"></i> Consulta
         </button>
       </div>
 
       <!-- ── Historial: visible para todos los roles ── -->
       <div class="tn-group">
-        <button class="tn-btn" onclick="cargar('../producto/historial.html',this)">
+        <button class="tn-btn" onclick="cargar('../producto/producto.html?tab=historial',this)">
           <i class="ri-history-line"></i> Historial
         </button>
       </div>
@@ -131,7 +131,7 @@
        El iframe carga la página del módulo seleccionado.
        Por defecto abre la pantalla de Colecciones. -->
   <div class="content-full">
-    <iframe id="frame" src="../producto/colecciones.html"></iframe>
+    <iframe id="frame" src="../producto/producto.html?tab=colecciones"></iframe>
   </div>
 
   <!-- Funciones globales compartidas (toast, requireAuth, confirmar, etc.) -->
@@ -155,13 +155,13 @@ if (rol === 4) {
     // Telas & Insumos, Consolidado y Canal de Venta.
     // (Colecciones, Consulta e Historial ya tienen botón propio en el navbar.)
     dropCosteo.innerHTML = `
-      <a href="#" onclick="cargar('../producto/telas-insumos.html',this)">
+      <a href="#" onclick="cargar('../producto/producto.html?tab=materia',this)">
         <i class="ri-ruler-line"></i> Telas & Insumos
       </a>
-      <a href="#" onclick="cargar('../producto/consolidado.html',this)">
+      <a href="#" onclick="cargar('../producto/producto.html?tab=consolidado',this)">
         <i class="ri-bar-chart-line"></i> Consolidado
       </a>
-      <a href="#" onclick="cargar('../producto/canales.html',this)">
+      <a href="#" onclick="cargar('../producto/producto.html?tab=canales',this)">
         <i class="ri-store-line"></i> Canal de Venta
       </a>`;
     document.getElementById('secUsuarios').style.display    = 'flex';
@@ -175,7 +175,7 @@ if (rol === 4) {
   if (rol === 1) {
     // MATERIA PRIMA: solo accede a Telas & Insumos
     dropCosteo.innerHTML = `
-      <a href="#" onclick="cargar('../producto/telas-insumos.html',this)">
+      <a href="#" onclick="cargar('../producto/producto.html?tab=materia',this)">
         <i class="ri-ruler-line"></i> Telas & Insumos
       </a>`;
     document.getElementById('secCosteo').style.display = 'flex';
@@ -185,10 +185,10 @@ if (rol === 4) {
   if (rol === 2) {
     // COSTEO: accede a Consolidado y Canales de Venta
     dropCosteo.innerHTML = `
-      <a href="#" onclick="cargar('../producto/consolidado.html',this)">
+      <a href="#" onclick="cargar('../producto/producto.html?tab=consolidado',this)">
         <i class="ri-bar-chart-line"></i> Consolidado
       </a>
-      <a href="#" onclick="cargar('../producto/canales.html',this)">
+      <a href="#" onclick="cargar('../producto/producto.html?tab=canales',this)">
         <i class="ri-store-line"></i> Canal de Venta
       </a>`;
     document.getElementById('secCosteo').style.display = 'flex';

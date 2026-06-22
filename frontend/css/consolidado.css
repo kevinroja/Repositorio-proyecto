@@ -1,0 +1,41 @@
+/*
+  css/consolidado.css — Específico del módulo Consolidado
+  Requiere: costeo-core.css (cards, xgrid, botones, badges, access-denied...)
+*/
+
+/* ══════ PARÁMETROS GLOBALES ══════ */
+.params-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px;padding:14px}
+.pf{display:flex;flex-direction:column;gap:3px}
+.pf label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3)}
+.pf input{height:28px;padding:0 8px;border:1px solid var(--bd);border-radius:var(--r);font-family:var(--mono);font-size:11px;text-align:right;background:var(--wh);color:var(--tx);outline:none}
+.pf input:focus{border-color:var(--g3);box-shadow:0 0 0 2px rgba(82,183,136,.15)}
+
+/* ══════ MÉTRICAS / KPI CARDS ══════ */
+.metrics{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.metric{background:var(--wh);border:1px solid var(--bd);border-radius:var(--r2);padding:10px 16px;flex:1;min-width:130px}
+.metric .ml{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);font-weight:700}
+.metric .mv{font-family:var(--mono);font-size:17px;font-weight:600;margin-top:3px}
+.metric .mv.g{color:var(--g1)}.metric .mv.a{color:var(--am2)}.metric .mv.b{color:var(--blue)}
+
+/* ══════ COLUMNA REFERENCIA FIJA (position:sticky nativo) ══════
+   costeo-core.css define position:sticky;left:0 en .xgrid th.fr/.xgrid td.fr.
+   Para que funcione el scroll debe ocurrir en .xgrid-wrap, no en el body.
+   Se fija html/body a overflow:hidden y #content-wrap maneja el scroll vertical. */
+html, body{height:100%;margin:0;padding:0;overflow:hidden}
+#content-wrap{height:100%;overflow-y:auto;overflow-x:hidden}
+
+.xgrid th.fr,
+.xgrid td.fr{
+  min-width:200px;
+  max-width:200px;
+}
+.xgrid th.fr{background:#F4F1EB !important;z-index:11 !important}
+.xgrid td.fr{background:var(--wh);z-index:10}
+.xgrid .xr:nth-child(even) td.fr{background:#FAFAF7 !important}
+.xgrid .xr td.fr.ttl{background:var(--glt) !important}
+.xgrid .xr td.fr.sub{background:var(--amlt) !important}
+.xgrid .xr td.fr.fin{background:#FEE2A0 !important}
+
+/* Toolbar del módulo */
+#module-toolbar{position:sticky;top:0;z-index:200}
+#toolbar-spacer{height:0;flex-shrink:0}

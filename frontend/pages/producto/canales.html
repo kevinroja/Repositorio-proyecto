@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<!--
+  canales.html — Módulo Canal de Venta (Costeo Textil)
+  Se carga dentro del iframe de Interfas_Admin.html.
+  NO tiene login propio: toma el token y rol del shell padre (window.parent).
+  Roles permitidos: 4 (Admin), 2 (Costeo).
+
+  NOTA: el botón "Aplicar al Consolidado" (en pane-canales.js) depende de
+  inputs que viven en consolidado.html. Al quedar en archivos separados,
+  ese botón no tiene efecto en esta página — queda pendiente de resolver
+  (decisión tomada con Kevin: dejarlo así por ahora).
+-->
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>KV · Canal de Venta</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/costeo-core.css">
+  <link rel="stylesheet" href="../../css/canales.css">
+</head>
+<body>
+
+<div id="content-wrap">
+  <div id="pane-canales" class="pane active" style="padding:20px"></div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ── SCRIPTS DEL MÓDULO (el orden importa) ── -->
+<script src="../../js/utils.js"></script>
+<script src="../../js/state.js"></script>
+<script src="../../js/auth-shared.js"></script>
+<script src="../../js/pane-canales.js"></script>
+
+<script>
+  // ── Inicialización: toma los datos de sesión del shell padre ──
+  (function initFromKika() {
+    const par     = window.parent;
+    const token   = par?.kikaToken   || sessionStorage.getItem('kika_token');
+    const usuario = par?.kikaUsuario || JSON.parse(sessionStorage.getItem('kika_usuario') || 'null');
+    const rolKika = parseInt(par?.kikaRol) || parseInt(sessionStorage.getItem('kika_rol') || '0');
+
+    if (par?.kikaToken && par.kikaToken !== 'consulta_guest') {
+      sessionStorage.setItem('kika_token',   par.kikaToken);
+      sessionStorage.setItem('kika_usuario', JSON.stringify(par.kikaUsuario));
+      sessionStorage.setItem('kika_rol',     String(par.kikaRol));
+    }
+
+    if (!token || !usuario || token === 'consulta_guest') {
+      document.body.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;
+                    justify-content:center;height:100vh;gap:16px;
+                    font-family:'DM Sans',sans-serif;color:#5C574F;background:#EFECE4">
+          <div style="font-size:48px">🔒</div>
+          <div style="font-size:16px;font-weight:700;color:#1A1714">Sesión no encontrada</div>
+          <div style="font-size:13px">Inicia sesión desde el panel principal de Kika.</div>
+        </div>`;
+      return;
+    }
+
+    // Kika: 4=admin, 2=finanzas (Costeo) — únicos roles con acceso a este módulo
+    const ROL_MAP   = { 4: 'admin', 2: 'finanzas' };
+    const rolCosteo = ROL_MAP[rolKika];
+
+    if (!rolCosteo) {
+      document.body.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;
+                    justify-content:center;height:100vh;gap:16px;
+                    font-family:'DM Sans',sans-serif;color:#5C574F;background:#EFECE4">
+          <div style="font-size:48px">⛔</div>
+          <div style="font-size:16px;font-weight:700;color:#1A1714">Acceso no autorizado</div>
+          <div style="font-size:13px">
+            El Canal de Venta está disponible para:<br>
+            <b>Administrador · Costeo</b>
+          </div>
+        </div>`;
+      return;
+    }
+
+    currentUser = { name: usuario.Nombre, role: rolCosteo, token: token };
+
+    buildPaneCanales();
+
+    addHist('Accedió al módulo de Canal de Venta', 'Canales',
+      `${usuario.Nombre} (Rol Kika: ${rolKika})`);
+  })();
+</script>
+
+</body>
+</html>

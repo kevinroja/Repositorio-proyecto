@@ -8,6 +8,7 @@ const prendaRoutes    = require('./src/routes/prenda.routes');
 const canalRoutes     = require('./src/routes/canal.routes');
 const soporteRoutes   = require('./src/routes/soporte.routes');
 const reportsRoutes   = require('./src/routes/reports.routes');
+const escenarioRoutes = require('./src/routes/escenario.routes');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -28,6 +29,7 @@ app.use('/api/prendas',     prendaRoutes);
 app.use('/api/canales',     canalRoutes);
 app.use('/api/soporte',     soporteRoutes);
 app.use('/api/reportes',    reportsRoutes);
+app.use('/api/costeo/escenarios', escenarioRoutes);
 
 // ─── Ruta de salud ────────────────────────────────────────
 app.get('/api/health', (req, res) => {

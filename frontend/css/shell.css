@@ -105,3 +105,30 @@ body.page-shell {
   display: block;
   overflow: auto;              /* habilita scroll dentro del iframe */
 }
+/* ══════ RESPONSIVE SHELL ══════ */
+
+/* Tablet: 768px — sidebar se convierte en drawer */
+@media (max-width: 768px) {
+  .navbar       { padding: 0 12px; flex-wrap: wrap; height: auto; min-height: 56px; }
+
+  /* Topnav horizontal → menú desplegable vertical */
+  .topnav       { display: none; flex-direction: column; width: 100%;
+                  background: var(--navy-lt, #162230); padding: 6px 0; }
+  .topnav.open  { display: flex; }
+  .tn-btn       { width: 100%; padding: 10px 16px; border-radius: 0; }
+  .tn-dropdown  { position: static; box-shadow: none; border: none;
+                  border-radius: 0; min-width: unset; animation: none;
+                  background: rgba(0,0,0,.15); }
+  .tn-group:hover .tn-dropdown { display: none; } /* hover off en móvil */
+  .tn-group.open .tn-dropdown  { display: block; }
+
+  /* iframe con scroll completo */
+  .content-full { overflow: auto; }
+  .content-full iframe { overflow: auto; }
+}
+
+/* Móvil: 480px */
+@media (max-width: 480px) {
+  .navbar       { padding: 0 8px; }
+  .tn-btn       { font-size: 12px; padding: 9px 12px; }
+}

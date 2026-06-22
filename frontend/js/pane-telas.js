@@ -312,7 +312,6 @@ function renderTelas() {
   }).join('');
 
   syncInsRefs();
-  recalc();
 }
 
 
@@ -329,12 +328,9 @@ function updateT(id, field, mi, sf, val) {
 
 
 /**
- * Actualiza ajuste o margen desde el Consolidado.
+ * NOTA: updateTelaField() se movió a pane-consolidado.js,
+ * que es el único módulo que la usa (ajuste/margen desde el Consolidado).
  */
-function updateTelaField(id, field, val) {
-  const r = TELAS.find(x => x.id === id);
-  if (r) { r[field] = D(val); recalc(); }
-}
 
 
 /**

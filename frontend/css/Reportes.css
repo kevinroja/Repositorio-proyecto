@@ -124,3 +124,25 @@
 
 @keyframes rep-toast-in  { from{opacity:0; transform:translateX(20px);} to{opacity:1; transform:translateX(0);} }
 @keyframes rep-toast-out { from{opacity:1; transform:translateX(0);} to{opacity:0; transform:translateX(20px);} }
+/* ══════ RESPONSIVE REPORTES ══════ */
+@media (max-width: 900px) {
+  .rep-metrics  { max-width: 100%; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .table-wrap   { max-width: 100%; }
+  .rep-filters  { max-width: 100%; }
+}
+
+@media (max-width: 768px) {
+  .rep-metrics  { grid-template-columns: 1fr 1fr; }
+  .rep-filters  { flex-direction: column; }
+  .rep-filters .field-group { width: 100%; }
+  .table-toolbar { flex-direction: column; align-items: flex-start; gap: 8px; }
+  /* Tabla con scroll horizontal */
+  .table-wrap   { overflow-x: auto; }
+}
+
+@media (max-width: 480px) {
+  .rep-metrics  { grid-template-columns: 1fr; gap: 8px; }
+  .metric-value { font-size: 1.15rem; }
+  .rep-toast    { min-width: unset; max-width: calc(100vw - 24px); }
+  #repToastContainer { left: 12px; right: 12px; }
+}

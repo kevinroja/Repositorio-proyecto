@@ -1,0 +1,22 @@
+/*
+  css/canales.css — Específico del módulo Canal de Venta
+  Requiere: costeo-core.css (cards, botones, badges, access-denied...)
+*/
+
+.canal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.canal-card{background:var(--wh);border:1.5px solid var(--bd);border-radius:var(--r2);padding:18px;box-shadow:var(--sh)}
+.canal-card.active-canal{border-color:var(--g3);background:var(--gxlt)}
+.canal-name{font-size:14px;font-weight:700;color:var(--g1);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.canal-field{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px dashed var(--bd);font-size:12px}
+.canal-field:last-child{border-bottom:none}
+.canal-field label{color:var(--tx2)}
+.canal-field input{width:80px;border:1px solid var(--bd);border-radius:3px;padding:2px 6px;text-align:right;font-family:var(--mono);font-size:11px;outline:none}
+.canal-field input:focus{border-color:var(--g3)}
+
+/* ══════ RESPONSIVE CANALES ══════ */
+@media (max-width: 768px) {
+  .canal-grid   { grid-template-columns: 1fr; gap: 10px; }
+}
+@media (max-width: 480px) {
+  .canal-field input { width: 70px; }
+}

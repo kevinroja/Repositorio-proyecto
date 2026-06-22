@@ -5,9 +5,15 @@
  * Trae los registros reales desde el backend (GET /api/historial)
  * y los muestra con filtros por módulo y usuario, y exportación a CSV.
  * Accesible para todos los roles (solo lectura).
- * Depende de: utils.js, state.js, auth.js, kika.js
+ * Depende de: utils.js, state.js, auth-shared.js
  * ============================================================
  */
+
+// Autocontenido: antes dependía de que pane-colecciones.js dejara
+// estas variables como globales en la misma página (bug ya existente:
+// usaba API_URL sin declararla en ningún lado). Ahora se declaran aquí.
+const API_URL  = window.parent?.API_URL || 'http://localhost:3000/api';
+const getToken = () => window.parent?.kikaToken || sessionStorage.getItem('kika_token');
 
 // Íconos y colores por módulo para identificar visualmente cada acción
 const MOD_ICONS = {
