@@ -159,6 +159,7 @@ function buildToolbarInsumos() {
   const tbSlot = document.getElementById('module-toolbar');
   if (!tbSlot) return;
   const edit = canEdit('insumos');
+
   tbSlot.innerHTML = `
     <div id="toolbar-insumos" style="
       width:100%;box-sizing:border-box;height:40px;z-index:200;
@@ -179,16 +180,55 @@ function buildToolbarInsumos() {
                  background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#fff">
           ⚙ Insumos Fijos
         </button>
-      ` : `<span class="badge ba" style="color:#fff;flex-shrink:0">Solo Lectura</span>`}
+        <div style="width:1px;height:22px;background:rgba(255,255,255,.2);flex-shrink:0;margin:0 2px"></div>
+        <select id="sel-col-cargar" style="
+          flex-shrink:0;height:26px;font-size:11px;padding:0 8px;min-width:170px;
+          background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+          color:#fff;border-radius:4px;cursor:pointer">
+          <option value="" style="background:#1B4332">📂 Seleccionar colección...</option>
+          ${(typeof COLECCIONES !== 'undefined' ? COLECCIONES : []).map(c =>
+            `<option value="${c.id}" style="background:#fff;color:#000000">${esc(c.name)}</option>`
+          ).join('')}
+        </select>
+        <button class="btn btn-g" onclick="cargarTelasPorColeccion()"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 10px;
+                 background:rgba(90,62,138,.7);border-color:rgba(255,255,255,.3);color:#fff">
+          ⬇ Cargar
+        </button>
+        <button class="btn btn-g" onclick="actualizarTelasPorColeccion()"
+          title="Recarga desde BD la colección seleccionada"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 10px;
+                 background:rgba(58,110,168,.7);border-color:rgba(255,255,255,.3);color:#fff">
+          ↺ Actualizar
+        </button>
+        <div style="width:1px;height:22px;background:rgba(255,255,255,.2);flex-shrink:0;margin:0 2px"></div>
+        <input id="inp-buscar-prenda" type="text"
+          placeholder="🔍 Buscar prenda..."
+          onkeydown="if(event.key==='Enter') buscarPrendaIndividual()"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 8px;min-width:180px;
+                 background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+                 color:#fff;border-radius:4px">
+        <button class="btn btn-g" onclick="buscarPrendaIndividual()"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 10px;
+                 background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.3);color:#fff">
+          + Agregar
+        </button>
+        <div style="flex:1"></div>
+        <button class="btn btn-g" onclick="guardarTelas()"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 12px;
+                 background:rgba(26,107,124,.8);border-color:rgba(255,255,255,.3);color:#fff">
+          💾 Guardar en BD
+        </button>
+      ` : `<span style="color:#fff;font-size:11px;opacity:.7">Solo Lectura</span>`}
     </div>
     <div id="fijos-summary"
       style="padding:4px 12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;
              background:var(--bg,#EFECE4);border-bottom:1px solid var(--bd,#D4CFC4);min-height:28px;">
     </div>`;
 
-  // Sincroniza el espaciador inmediatamente. Este toolbar tiene altura
-  // variable (barra de acciones + fijos-summary), así que no se puede
-  // asumir un valor fijo: hay que medir offsetHeight real tras inyectar.
+  // Poblar el select sin reconstruir el toolbar (cargarColeccionesEnToolbar llama buildToolbarTelas)
+  if (typeof poblarSelectColecciones === 'function') poblarSelectColecciones();
+  else if (typeof cargarColeccionesEnToolbar === 'function') cargarColeccionesEnToolbar();
   if (typeof syncToolbarSpacer === 'function') syncToolbarSpacer();
 }
 
@@ -198,7 +238,7 @@ function buildPaneInsumos() {
   if (!pane) return;
   const edit = canEdit('insumos');
 
-  pane.style.cssText = 'padding:0;overflow:visible;min-width:max-content';
+  pane.style.cssText = 'padding:0;overflow:hidden;';
 
   buildToolbarInsumos();
 
@@ -262,7 +302,8 @@ pane.innerHTML = `
         </thead>
         <tbody id="insumos-body"></tbody>
       </table>
-    </div>`;
+    </div>
+  </div>`;
 
   renderFijosSummary();
   renderInsumos();
@@ -277,7 +318,7 @@ pane.innerHTML = `
 function addInsRow(data) {
   const row = {
     id:  ID(),
-    ref: data?.ref || TELAS[0]?.ref || '',
+    ref: data?.ref || '',
     ins: data?.ins || emptyIns()
   };
   INSUMOS.push(row);

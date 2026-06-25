@@ -18,11 +18,13 @@
 .metric .mv.g{color:var(--g1)}.metric .mv.a{color:var(--am2)}.metric .mv.b{color:var(--blue)}
 
 /* ══════ COLUMNA REFERENCIA FIJA (position:sticky nativo) ══════
-   costeo-core.css define position:sticky;left:0 en .xgrid th.fr/.xgrid td.fr.
-   Para que funcione el scroll debe ocurrir en .xgrid-wrap, no en el body.
-   Se fija html/body a overflow:hidden y #content-wrap maneja el scroll vertical. */
-html, body{height:100%;margin:0;padding:0;overflow:hidden}
-#content-wrap{height:100%;overflow-y:auto;overflow-x:hidden}
+   position:sticky en .fr funciona porque .xgrid-wrap tiene overflow:auto
+   (definido en costeo-core.css) y la tabla tiene white-space:nowrap, lo que
+   hace que la tabla sea más ancha que el wrap → se genera scroll horizontal
+   dentro del wrap → sticky se ancla a left:0 dentro de él.
+   El body mantiene scroll vertical normal. */
+html, body{height:100%;margin:0;padding:0;overflow-y:auto;overflow-x:hidden}
+#content-wrap{min-width:0}
 
 .xgrid th.fr,
 .xgrid td.fr{
@@ -38,4 +40,4 @@ html, body{height:100%;margin:0;padding:0;overflow:hidden}
 
 /* Toolbar del módulo */
 #module-toolbar{position:sticky;top:0;z-index:200}
-#toolbar-spacer{height:0;flex-shrink:0}
+#toolbar-spacer{display:none}

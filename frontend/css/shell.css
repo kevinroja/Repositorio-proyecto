@@ -1,7 +1,5 @@
-/* ============================================================
-   shell.css — Estilos del shell principal (Interfas_Admin)
-   Ubicación: frontend/css/shell.css
-   ============================================================ */
+.tn-group:hover .tn-dropdown,
+.tn-group.dd-open .tn-dropdown { display: block; }
 
 body.page-shell {
   display: flex;
@@ -10,23 +8,46 @@ body.page-shell {
   overflow: hidden;
 }
 
+/* ── NAVBAR ── */
 .navbar {
-  height: auto;
+  height: 56px;
   min-height: 56px;
-  flex-wrap: nowrap;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  z-index: 100;
+  padding: 0 16px;
+  gap: 8px;
+  z-index: 300;
+  position: relative;
 }
+
+/* ── BOTÓN HAMBURGUESA (oculto en desktop) ── */
+.btn-hamburger {
+  display: none;
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2);
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background .2s;
+  margin-left: auto;
+}
+.btn-hamburger:hover { background: rgba(255,255,255,.22); }
 
 /* ── TOPNAV ── */
 .topnav {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   flex: 1;
-  padding: 0 8px;
+  padding: 0 4px;
+  overflow: hidden;
 }
 
 .tn-group { position: relative; }
@@ -35,7 +56,7 @@ body.page-shell {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
+  padding: 8px 12px;
   background: transparent;
   border: none;
   color: rgba(255,255,255,.8);
@@ -49,12 +70,13 @@ body.page-shell {
 }
 .tn-btn:hover,
 .tn-btn.active { background: rgba(255,255,255,.15); color: #fff; }
-.tn-btn i { font-size: 15px; }
+.tn-btn i { font-size: 15px; flex-shrink: 0; }
 
+/* Dropdown desktop (hover) */
 .tn-dropdown {
   display: none;
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 0;
   background: #fff;
   border: 1px solid #e2e5ea;
@@ -65,13 +87,12 @@ body.page-shell {
   overflow: hidden;
   animation: dropIn .15s ease;
 }
-
 @keyframes dropIn {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-.tn-group:hover .tn-dropdown { display: block; }
+.tn-group:hover .tn-dropdown,
+.tn-group.dd-open .tn-dropdown { display: block; }
 
 .tn-dropdown a {
   display: flex;
@@ -82,53 +103,190 @@ body.page-shell {
   text-decoration: none;
   font-size: 13px;
   font-weight: 500;
-  transition: .2s ease;
+  transition: background .15s;
 }
 .tn-dropdown a:hover,
 .tn-dropdown a.active { background: #e6f4f7; color: #1a6b7c; }
-.tn-dropdown a i { font-size: 15px; color: #1a6b7c; }
+.tn-dropdown a i { font-size: 15px; color: #1a6b7c; flex-shrink: 0; }
 
-/* ── CONTENIDO FULL WIDTH ── */
+/* ── CONTENIDO ── */
 .content-full {
   flex: 1;
-  min-height: 0;               /* crítico: permite que flex-child se encoja correctamente */
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
-
 .content-full iframe {
   width: 100%;
   flex: 1;
-  min-height: 0;               /* crítico: sin esto el iframe ignora el límite del padre */
+  min-height: 0;
   border: none;
   display: block;
-  overflow: auto;              /* habilita scroll dentro del iframe */
+  overflow: auto;
 }
-/* ══════ RESPONSIVE SHELL ══════ */
 
-/* Tablet: 768px — sidebar se convierte en drawer */
+/* ══════════════════════════════════════════════════════
+   PANEL MENÚ MÓVIL  (generado por navbar-mobile.js)
+══════════════════════════════════════════════════════ */
+
+/* Overlay detrás del menú */
+.mobile-menu-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  top: 56px;
+  background: rgba(0,0,0,.45);
+  z-index: 240;
+}
+.mobile-menu-overlay.open { display: block; }
+
+/* Panel principal */
+.mobile-menu {
+  display: none;
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  background: #0e1b25;
+  z-index: 250;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+  flex-direction: column;
+  padding: 6px 0 20px;
+  animation: menuDown .2s ease;
+}
+.mobile-menu.open { display: flex; }
+
+@keyframes menuDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Ítem simple */
+.mm-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 20px;
+  color: rgba(255,255,255,.8);
+  text-decoration: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s;
+}
+.mm-item:hover,
+.mm-item.active { background: rgba(255,255,255,.08); color: #fff; }
+.mm-item i { font-size: 18px; width: 22px; text-align: center;
+             color: rgba(255,255,255,.45); flex-shrink: 0; }
+.mm-item:hover i { color: #e8c96a; }
+
+/* Logout con color diferente */
+.mm-item-logout { color: rgba(255,160,140,.85); }
+.mm-item-logout i { color: rgba(255,140,120,.6); }
+.mm-item-logout:hover { background: rgba(255,80,60,.12); color: #ff9080; }
+
+/* Botón de grupo (acordeón) */
+.mm-group-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 20px;
+  color: rgba(255,255,255,.8);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s;
+}
+.mm-group-btn:hover { background: rgba(255,255,255,.08); color: #fff; }
+.mm-icon {
+  font-size: 18px;
+  width: 22px;
+  text-align: center;
+  color: rgba(255,255,255,.45);
+  flex-shrink: 0;
+}
+.mm-group-btn:hover .mm-icon { color: #e8c96a; }
+
+/* Flecha del acordeón */
+.mm-chevron {
+  margin-left: auto;
+  font-size: 16px;
+  color: rgba(255,255,255,.3);
+  transition: transform .22s ease;
+  flex-shrink: 0;
+}
+.mm-group.open .mm-chevron { transform: rotate(180deg); }
+
+/* Sub-ítems */
+.mm-sub {
+  display: none;
+  flex-direction: column;
+  background: rgba(0,0,0,.22);
+  border-left: 2px solid rgba(232,201,106,.2);
+  margin-left: 36px;
+}
+.mm-group.open .mm-sub { display: flex; }
+
+.mm-sub a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 18px;
+  color: rgba(255,255,255,.6);
+  text-decoration: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background .15s;
+}
+.mm-sub a:hover,
+.mm-sub a.active { background: rgba(255,255,255,.07); color: #fff; }
+.mm-sub a i {
+  font-size: 15px;
+  width: 18px;
+  text-align: center;
+  color: rgba(255,255,255,.35);
+  flex-shrink: 0;
+}
+.mm-sub a:hover i { color: #e8c96a; }
+
+/* Separador */
+.mm-sep {
+  height: 1px;
+  background: rgba(255,255,255,.08);
+  margin: 8px 16px;
+}
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE — breakpoints
+══════════════════════════════════════════════════════ */
+
+/* El topnav deja de caber ~900px → activar hamburguesa */
+@media (max-width: 900px) {
+  .topnav        { display: none; }
+  .btn-hamburger { display: flex; }
+}
+
 @media (max-width: 768px) {
-  .navbar       { padding: 0 12px; flex-wrap: wrap; height: auto; min-height: 56px; }
-
-  /* Topnav horizontal → menú desplegable vertical */
-  .topnav       { display: none; flex-direction: column; width: 100%;
-                  background: var(--navy-lt, #162230); padding: 6px 0; }
-  .topnav.open  { display: flex; }
-  .tn-btn       { width: 100%; padding: 10px 16px; border-radius: 0; }
-  .tn-dropdown  { position: static; box-shadow: none; border: none;
-                  border-radius: 0; min-width: unset; animation: none;
-                  background: rgba(0,0,0,.15); }
-  .tn-group:hover .tn-dropdown { display: none; } /* hover off en móvil */
-  .tn-group.open .tn-dropdown  { display: block; }
-
-  /* iframe con scroll completo */
-  .content-full { overflow: auto; }
-  .content-full iframe { overflow: auto; }
+  .navbar { padding: 0 12px; }
 }
 
-/* Móvil: 480px */
 @media (max-width: 480px) {
-  .navbar       { padding: 0 8px; }
-  .tn-btn       { font-size: 12px; padding: 9px 12px; }
+  .navbar { padding: 0 8px; }
+  .mm-item,
+  .mm-group-btn { padding: 12px 16px; font-size: 13px; }
+  .mm-sub a     { padding: 10px 14px; font-size: 12px; }
 }

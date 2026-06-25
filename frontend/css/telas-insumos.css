@@ -8,31 +8,27 @@
 .upload-zone:hover,.upload-zone.drag{border-color:var(--g3);background:var(--gxlt);color:var(--g1)}
 .upload-zone .big{font-size:28px;display:block;margin-bottom:6px}
 
-/* ══════ COLUMNA REFERENCIA FIJA (hack translateX) ══════
-   El scroll horizontal real ocurre en <body>, no dentro de .xgrid-wrap
-   (que crece con min-width:max-content junto con su contenido), así que
-   position:sticky no tiene ningún ancestro útil al que anclarse. Se
-   compensa con un transform:translateX() vía JS (script propio en
-   telas-insumos.html) que sigue el scrollLeft del body. Sigue
-   pendiente de una solución más limpia (anotado en memoria del proyecto). */
-html, body{height:100%;margin:0;padding:0;overflow:auto}
-#content-wrap{height:auto;overflow:visible;min-width:max-content}
+/* ══════ COLUMNA REFERENCIA FIJA (position:sticky nativo) ══════
+   position:sticky en .fr funciona porque .xgrid-wrap tiene overflow:auto
+   (definido en costeo-core.css) y la tabla tiene white-space:nowrap, lo que
+   hace que la tabla sea más ancha que el wrap → se genera scroll horizontal
+   dentro del wrap → sticky se ancla a left:0 dentro de él.
+   El body mantiene scroll vertical normal. */
+html, body{margin:0;padding:0;overflow-y:auto;overflow-x:hidden}
+#content-wrap{min-width:0}
 
 .xgrid th.fr,
 .xgrid td.fr{
-  position:relative !important;
-  z-index:50;
-  will-change:transform;
   min-width:200px;
   max-width:200px;
-  background:var(--wh);
 }
-.xgrid th.fr{background:#F4F1EB !important}
+.xgrid th.fr{background:#F4F1EB !important;z-index:14 !important;top:0}
+.xgrid td.fr{background:var(--wh);z-index:13}
 .xgrid .xr:nth-child(even) td.fr{background:#FAFAF7 !important}
 .xgrid .xr td.fr.ttl{background:var(--glt) !important}
 .xgrid .xr td.fr.sub{background:var(--amlt) !important}
 .xgrid .xr td.fr.fin{background:#FEE2A0 !important}
 
-/* Toolbar del módulo: queda fija arriba mientras el body hace scroll */
-#module-toolbar{position:fixed;top:0;left:0;right:0;z-index:200}
-#toolbar-spacer{height:0;flex-shrink:0}
+/* Toolbar del módulo */
+#module-toolbar{position:sticky;top:0;z-index:200}
+#toolbar-spacer{display:none}

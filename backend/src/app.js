@@ -9,7 +9,7 @@ const soporteRoutes   = require('./src/routes/soporte.routes');
 const reportsRoutes   = require('./src/routes/reports.routes');
 const costeoRoutes    = require('./src/routes/costeo.routes');
 const escenarioRoutes = require('./src/routes/escenario.routes');
-const costeoRoutes    = require('./src/routes/costeo.routes');
+const canalRoutes     = require('./src/routes/canal.routes');   // ← import que faltaba
 
 // authMiddleware verifica el JWT en cada petición protegida
 const { authMiddleware } = require('./src/middlewares/auth.middleware');
@@ -22,14 +22,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-app.use('/api/auth',           usuarioRoutes);
-app.use('/api/usuarios',       usuarioRoutes);
-app.use('/api/colecciones',    coleccionRoutes);
-app.use('/api/prendas',        prendaRoutes);
-app.use('/api/canales',        canalRoutes);
-app.use('/api/soporte',        soporteRoutes);
-app.use('/api/reportes',       reportsRoutes);
-app.use('/api/costeo/escenarios', escenarioRoutes)
+app.use('/api/auth',              usuarioRoutes);
+app.use('/api/usuarios',          usuarioRoutes);
+app.use('/api/colecciones',       coleccionRoutes);
+app.use('/api/prendas',           prendaRoutes);
+app.use('/api/canales',           canalRoutes);          // ← ahora funciona
+app.use('/api/soporte',           soporteRoutes);
+app.use('/api/reportes',          reportsRoutes);
+app.use('/api/costeo',            authMiddleware, costeoRoutes);
+app.use('/api/costeo/escenarios', escenarioRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Servidor corriendo', timestamp: new Date() });

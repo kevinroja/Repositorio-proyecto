@@ -56,9 +56,9 @@ html,body{font-family:var(--sans);background:var(--bg);color:var(--tx);font-size
 .hint{font-size:11px;color:var(--tx3);font-style:italic}
 
 /* ══════ EXCEL GRID (Telas&Insumos + Consolidado) ══════ */
-.xgrid-wrap{overflow:auto;border:1px solid var(--bd);border-radius:var(--r2);background:var(--wh);position:relative}
+.xgrid-wrap{overflow:auto;border:1px solid var(--bd);border-radius:var(--r2);background:var(--wh);position:relative;max-height:calc(100vh - 260px)}
 .xgrid{border-collapse:collapse;font-size:12px;white-space:nowrap}
-.xgrid th{border:1px solid var(--bd);padding:5px 8px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);white-space:nowrap;user-select:none}
+.xgrid th{border:1px solid var(--bd);padding:5px 8px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);white-space:nowrap;user-select:none;position:sticky;top:0;z-index:12;background:#F4F1EB}
 .xgrid td{border:1px solid #E5E1DA;padding:0;vertical-align:middle;position:relative}
 .xgrid td.num{text-align:right}
 .xgrid td.ro{background:#F7F5F0}
@@ -67,8 +67,8 @@ html,body{font-family:var(--sans);background:var(--bg);color:var(--tx);font-size
 .xgrid td.fin{background:#FEE2A0;font-weight:700}
 .xgrid td.usd{background:var(--bllt)}
 .xgrid td.grn{background:var(--glt)}
-.xgrid th.fr,.xgrid td.fr{position:sticky;left:0;z-index:10;background:var(--wh);border-right:2px solid var(--bd2)}
-.xgrid th.fr{background:#F4F1EB;z-index:11}
+.xgrid th.fr,.xgrid td.fr{position:sticky;left:0;z-index:13;background:var(--wh);border-right:2px solid var(--bd2)}
+.xgrid th.fr{background:#F4F1EB;z-index:14;top:0}
 .xgrid .xr:hover td{filter:brightness(.97)}
 .xgrid .xr:nth-child(even) td:not(.fr):not(.ttl):not(.sub):not(.fin):not(.usd):not(.grn):not(.ro){background:#FAFAF7}
 .gh-prod{background:#E2F0E6}.gh-ins{background:#EEF4FB}.gh-fit{background:#FFF8E1}

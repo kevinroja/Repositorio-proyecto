@@ -35,8 +35,31 @@ function getAuthConfig() {
  * Inyecta el toolbar de Telas en #module-toolbar.
  * Misma estructura que buildToolbarInsumos().
  */
+// Puebla el <select id="sel-col-cargar"> que ya existe en el toolbar activo
+// sin reconstruir ningún toolbar. Llamar desde buildToolbarInsumos().
+function poblarSelectColecciones() {
+  const sel = document.getElementById('sel-col-cargar');
+  if (!sel) return;
+  const current = sel.value;
+  // Mantener la primera opción placeholder y reemplazar el resto
+  while (sel.options.length > 1) sel.remove(1);
+  COLECCIONES.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    opt.style.background = '#fff';
+    opt.style.color = '#000';
+    sel.appendChild(opt);
+  });
+  if (current) sel.value = current;
+}
+
 async function cargarColeccionesEnToolbar() {
+  // Detectar qué toolbar está activo para reconstruir el correcto
+  const esInsumos = !!document.getElementById('toolbar-insumos');
+
   if (COLECCIONES.length) {
+    if (esInsumos) { poblarSelectColecciones(); return; }
     buildToolbarTelas();
     return;
   }
@@ -61,6 +84,8 @@ async function cargarColeccionesEnToolbar() {
       });
     }
   } catch(e) { console.warn('No se pudo cargar colecciones:', e.message); }
+
+  if (esInsumos) { poblarSelectColecciones(); return; }
   buildToolbarTelas();
 }
 
@@ -135,6 +160,8 @@ function buildToolbarTelas() {
   // Sincroniza el espaciador inmediatamente: no depender solo del
   // ResizeObserver, que puede no haberse adjuntado aún en el primer render.
   if (typeof syncToolbarSpacer === 'function') syncToolbarSpacer();
+  // Si COLECCIONES aún no se ha cargado, disparar fetch y reconstruir
+  if (!COLECCIONES.length) cargarColeccionesEnToolbar();
 }
 
 
@@ -509,7 +536,7 @@ function buildPaneMateria() {
 
   // buildSubPaneInsumos sobreescribe el toolbar — restaurar el de telas con setTimeout
   // para que el DOM ya esté listo cuando se inyecte
-  setTimeout(() => cargarColeccionesEnToolbar(), 0);
+  setTimeout(() => buildToolbarTelas(), 0);
 }
 
 
@@ -526,7 +553,7 @@ function switchSubtab(which) {
   btnI.style.color      = showTelas ? 'var(--tx2)' : 'var(--bg)';
 
   // Actualizar toolbar según el subtab activo
-  if (showTelas) cargarColeccionesEnToolbar();
+  if (showTelas) buildToolbarTelas();
   else           buildToolbarInsumos();
 }
 
@@ -565,84 +592,99 @@ async function guardarTelas() {
   const fijosTotal = calcTtlFijos();
 
   // Deduplicar en memoria — clave única es ref+colId (igual que en BD)
-  // Si hay duplicadas, conserva la primera y elimina las siguientes silenciosamente
   const vistas = new Set();
   const dupNombres = [];
   TELAS = TELAS.filter(r => {
     const clave = `${r.ref.trim().toLowerCase()}__${r.colId}`;
-    if (vistas.has(clave)) {
-      dupNombres.push(r.ref);
-      return false;
-    }
+    if (vistas.has(clave)) { dupNombres.push(r.ref); return false; }
     vistas.add(clave);
     return true;
   });
-  if (dupNombres.length) {
-    console.warn('Duplicadas eliminadas antes de guardar:', dupNombres);
-    renderTelas();
-  }
+  if (dupNombres.length) { console.warn('Duplicadas eliminadas:', dupNombres); renderTelas(); }
 
-  let ok = 0, err = 0;
+  // Separar prendas nuevas (sin idPREND) de existentes (con idPREND)
+  // Las existentes van directo a PUT — nunca hacer POST sobre algo que ya está en BD
+  const nuevas     = TELAS.filter(r => !r.idPREND);
+  const existentes = TELAS.filter(r =>  r.idPREND);
 
-  for (const row of TELAS) {
+  let ok = 0, err = 0, bloqueadas = 0;
+
+  // ── Helper para construir el body de cada prenda ──────────────────────────
+  const buildBody = (row) => {
     const materiales = row.m
       .filter(m => m.mat)
       .map(m => ({ Nombre: m.mat, Mts: +m.mts || 0, Precio: +m.precio || 0 }));
-
     const insRow = INSUMOS.find(i => i.ref === row.ref);
     const insumos = insRow
       ? insRow.ins.filter(i => i.name).map(i => ({
           name: i.name, cant: +i.cant || 0, precio: +i.precio || 0
         }))
       : [];
+    return {
+      ref:         row.ref,
+      colId:       row.colId || null,
+      taller:      +row.taller || 0,
+      ttlMat:      calcTtlMat(row),
+      ttlInsVar:   insRow ? calcTtlVar(insRow) : 0,
+      ttlInsFijos: fijosTotal,
+      costoTotal:  calcTtlMat(row) + (insRow ? calcTtlVar(insRow) : 0) + fijosTotal,
+      materiales,
+      insumos,
+    };
+  };
 
+  // ── 1. Prendas NUEVAS → POST /api/prendas/guardar ────────────────────────
+  for (const row of nuevas) {
     try {
-      const res = await fetch(`${API}/prendas/guardar`, {
+      const res  = await fetch(`${API}/prendas/guardar`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          ref:         row.ref,
-          colId:       row.colId || null,
-          taller:      +row.taller || 0,
-          ttlMat:      calcTtlMat(row),
-          ttlInsVar:   insRow ? calcTtlVar(insRow) : 0,
-          ttlInsFijos: fijosTotal,
-          costoTotal:  calcTtlMat(row) + (insRow ? calcTtlVar(insRow) : 0) + fijosTotal,
-          materiales,
-          insumos
-        })
+        body:    JSON.stringify(buildBody(row)),
+      });
+      const json = await res.json();
+
+      if (json.ok) {
+        // Guardar el idPREND que devuelve el backend para que la fila quede "existente"
+        row.idPREND = json.data?.prendaId || json.data?.idPREND || null;
+        ok++;
+      } else if (json.duplicado) {
+        // Ya existe en BD aunque no tenía idPREND en memoria → actualizar
+        const resPut = await fetch(`${API}/prendas/${json.idExistente}`, {
+          method:  'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body:    JSON.stringify(buildBody(row)),
+        });
+        const putJson = await resPut.json();
+        if (putJson.ok) { row.idPREND = json.idExistente; ok++; }
+        else if (putJson.bloqueada) { bloqueadas++; }
+        else { err++; console.error(`Error PUT "${row.ref}":`, putJson.message); }
+      } else if (json.bloqueada) {
+        bloqueadas++;
+      } else {
+        err++;
+        console.error(`Error POST "${row.ref}":`, json.message);
+      }
+    } catch (e) {
+      err++;
+      console.error(`Error guardando "${row.ref}":`, e.message);
+    }
+  }
+
+  // ── 2. Prendas EXISTENTES → PUT /api/prendas/:id directo ─────────────────
+  for (const row of existentes) {
+    try {
+      const res  = await fetch(`${API}/prendas/${row.idPREND}`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body:    JSON.stringify(buildBody(row)),
       });
       const json = await res.json();
       if (json.ok) ok++;
-      else if (json.duplicado) {
-        // Upsert: si ya existe, hacer PUT para actualizar
-        try {
-          const resPut = await fetch(`${API}/prendas/${json.idExistente}`, {
-            method:  'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({
-              ref:         row.ref,
-              colId:       row.colId || null,
-              taller:      +row.taller || 0,
-              ttlMat:      calcTtlMat(row),
-              ttlInsVar:   insRow ? calcTtlVar(insRow) : 0,
-              ttlInsFijos: fijosTotal,
-              costoTotal:  calcTtlMat(row) + (insRow ? calcTtlVar(insRow) : 0) + fijosTotal,
-              materiales,
-              insumos
-            })
-          });
-          const putJson = await resPut.json();
-          if (putJson.ok) ok++;
-          else { err++; console.error(`Error PUT "${row.ref}":`, putJson.message); }
-        } catch(ePut) { err++; console.error(`Error PUT "${row.ref}":`, ePut.message); }
-      } else {
-        console.error(`Error en "${row.ref}":`, json.message);
-        err++;
-      }
+      else if (json.bloqueada) { bloqueadas++; }
+      else { err++; console.error(`Error PUT "${row.ref}":`, json.message); }
     } catch (e) {
-      console.error(`Error guardando "${row.ref}":`, e.message);
       err++;
+      console.error(`Error actualizando "${row.ref}":`, e.message);
     }
   }
 
@@ -651,16 +693,20 @@ async function guardarTelas() {
     await fetch(`${API}/prendas/insumos-fijos`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ fijos: FIJOS })
+      body:    JSON.stringify({ fijos: FIJOS }),
     });
   } catch(e) {
     console.error('Error guardando insumos fijos:', e.message);
   }
 
-  toast(err
-    ? `⚠ ${ok} guardadas, ${err} con error`
-    : `✓ ${ok} prendas guardadas en BD`
-  );
+  // Toast con resumen claro
+  if (bloqueadas && !err) {
+    toast(`⚠ ${ok} guardadas · ${bloqueadas} bloqueadas (colección de año anterior)`, 'warn');
+  } else if (err) {
+    toast(`⚠ ${ok} guardadas · ${err} con error · ${bloqueadas} bloqueadas`, 'error');
+  } else {
+    toast(`✓ ${ok} prenda(s) guardadas en BD`);
+  }
 }
 
 
