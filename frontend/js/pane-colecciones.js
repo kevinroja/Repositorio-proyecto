@@ -150,7 +150,7 @@ async function saveCollection() {
   const year   = +document.getElementById('cm-year').value;
 
   if (!name) {
-    toast('⚠ Ingresa el nombre de la colección', 'error');
+    window.parent.toast('⚠ Ingresa el nombre de la colección', 'error');
     return;
   }
 
@@ -172,12 +172,12 @@ async function saveCollection() {
     if (!json.ok) throw new Error(json.message);
 
     addHist(editingColId ? 'Editó colección' : 'Creó colección', 'Colecciones', name);
-    toast(editingColId ? '✓ Colección actualizada' : '✓ Colección creada');
+    window.parent.toast(editingColId ? '✓ Colección actualizada' : '✓ Colección creada');
     closeColModal();
     await cargarColecciones();
 
   } catch (err) {
-    toast('❌ ' + err.message, 'error');
+    window.parent.toast('❌ ' + err.message, 'error');
   }
 }
 
@@ -195,10 +195,10 @@ async function deleteCollection(id) {
     if (!json.ok) throw new Error(json.message);
 
     addHist('Eliminó colección', 'Colecciones', c?.name);
-    toast('✓ Colección eliminada');
+    window.parent.toast('✓ Colección eliminada');
     await cargarColecciones();
 
   } catch (err) {
-    toast('❌ ' + err.message, 'error');
+    window.parent.toast('❌ ' + err.message, 'error');
   }
 }

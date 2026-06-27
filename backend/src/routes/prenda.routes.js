@@ -128,4 +128,31 @@ router.get('/insumos-fijos', authMiddleware, async (req, res) => {
   }
 });
 
+// ── DELETE /api/prendas/:id — Eliminar prenda y sus telas/insumos ───────────
+router.delete('/:id',
+  authMiddleware,
+  rolesMiddleware(1, 4),
+  async (req, res) => {
+    try {
+      const affected = await Prenda.eliminarPrenda(parseInt(req.params.id));
+      if (!affected) return res.status(404).json({ ok: false, message: 'Prenda no encontrada' });
+
+      Historial.registrar({
+        tabla:       'prenda',
+        registro_id: req.params.id,
+        campo:       'Referencia',
+        valor_nuevo: null,
+        accion:      'DELETE',
+        usuario_id:  req.usuario.id,
+      });
+
+      res.json({ ok: true, message: 'Prenda eliminada' });
+    } catch (err) {
+      console.error('Error eliminando prenda:', err);
+      res.status(500).json({ ok: false, message: err.message });
+    }
+  }
+);
+
+
 module.exports = router;

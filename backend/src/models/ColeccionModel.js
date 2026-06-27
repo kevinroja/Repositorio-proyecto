@@ -25,6 +25,22 @@ class ColeccionModel {
     return rows[0] || null;
   }
 
+  /**
+   * Verifica si ya existe una colección con el mismo nombre.
+   * @param {string} nombre - Nombre a verificar
+   * @param {number|null} excludeId - ID a excluir (para edición)
+   * @returns {boolean}
+   */
+  static async existeNombre(nombre, excludeId = null) {
+    const rows = await db.query(
+      `SELECT idCOLECCION FROM coleccion
+       WHERE LOWER(NombreColeccion) = LOWER(?)
+         AND (? IS NULL OR idCOLECCION != ?)`,
+      [nombre, excludeId, excludeId]
+    );
+    return rows.length > 0;
+  }
+
   static async crear(data) {
     const { NombreColeccion, Temporada, Año } = data;
     const result = await db.execute(

@@ -16,7 +16,7 @@
   --teal-bg:   #e6f4f7;
   --red:       #c0392b;
   --green:     #1a8a5a;
-  --bg:        #f0f2f5;
+  --bg:        #EFECE4;
   --white:     #ffffff;
   --gray-lt:   #f4f5f7;
   --gray-mid:  #e2e5ea;
@@ -98,7 +98,7 @@ body.page-login {
   font-family: 'DM Sans', sans-serif;
   font-size: 14px;
   color: var(--text);
-  background: var(--gray-lt);
+  background: var(--white);
   transition: var(--tr);
 }
 .input-group input:focus,
@@ -270,7 +270,7 @@ body.page-form {
   width: 100%;
   height: 40px;
   padding: 0 12px;
-  border: 1.5px solid var(--gray-mid);
+  border: 1.5px solid #D4CFC4;
   border-radius: 8px;
   font-family: 'DM Sans', sans-serif;
   font-size: 13px;

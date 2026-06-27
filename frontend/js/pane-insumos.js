@@ -175,6 +175,11 @@ function buildToolbarInsumos() {
                  background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.3);color:#fff">
           + Fila
         </button>
+        <button class="btn btn-o" onclick="clearInsumos()"
+          style="flex-shrink:0;height:26px;font-size:11px;padding:0 10px;
+                 background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#fff">
+          🗑
+        </button>
         <button class="btn btn-o" onclick="showFijosModal()"
           style="flex-shrink:0;height:26px;font-size:11px;padding:0 10px;
                  background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#fff">
@@ -422,11 +427,39 @@ function updateI(id, ii, field, val) {
 }
 
 
-/**
- * Elimina una fila de insumos.
- * @param {string} id - ID de la fila a eliminar
- */
-function deleteInsRow(id) {
+async function deleteInsRow(id) {
+  const insRow = INSUMOS.find(r => r.id === id);
+  if (!insRow) return;
+
+  const telaRow = TELAS.find(t =>
+    t.ref === insRow.ref && String(t.colId) === String(insRow.colId || '')
+  );
+
+  if (telaRow?.idPREND) {
+    const confirmFn = window.confirmar || window.parent?.confirmar;
+    const ok = confirmFn
+      ? await confirmFn(`¿Eliminar "${insRow.ref}" de la base de datos?`, 'danger', 'Eliminar')
+      : confirm(`¿Eliminar "${insRow.ref}" de la base de datos?`);
+    if (!ok) return;
+
+    const { token, API } = getAuthConfig();
+    try {
+      const res  = await fetch(`${API}/prendas/${telaRow.idPREND}`, {
+        method:  'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (!json.ok) { toast('❌ ' + json.message, 'error'); return; }
+      toast(`✓ "${insRow.ref}" eliminada de la BD`);
+    } catch (e) {
+      toast('❌ Error de conexión: ' + e.message, 'error');
+      return;
+    }
+
+    TELAS = TELAS.filter(t => t.id !== telaRow.id);
+    renderTelas();
+  }
+
   INSUMOS = INSUMOS.filter(r => r.id !== id);
   renderInsumos();
 }
@@ -489,4 +522,20 @@ addHist(`Importó ${added} insumos`, 'Insumos', sheetName);
     renderInsumos();
     renderFijosSummary();
   }, 50);
+}
+
+/**
+ * Limpia todas las filas de TELAS e INSUMOS tras confirmación.
+ * Opera sobre ambas grillas independientemente del tab activo.
+ */
+async function clearInsumos() {
+  const confirmFn = window.confirmar || window.parent?.confirmar;
+  const ok = confirmFn
+    ? await confirmFn('¿Borrar todas las filas de insumos y telas de la grilla?', 'danger', 'Borrar todo')
+    : confirm('¿Borrar todas las filas de insumos y telas de la grilla?');
+  if (!ok) return;
+  TELAS   = [];
+  INSUMOS = [];
+  renderTelas();
+  renderInsumos();
 }

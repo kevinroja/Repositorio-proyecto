@@ -72,8 +72,8 @@ function inyectarPanelEscenarios() {
 
 async function guardarEscenario() {
   const colId = document.getElementById('cons-col-select')?.value;
-  if (!colId) { toast('⚠ Selecciona una colección antes de guardar', 'warn'); return; }
-  if (!TELAS.length) { toast('⚠ No hay referencias cargadas', 'warn'); return; }
+  if (!colId) { toast('⚠ Selecciona una colección antes de guardar', 'info'); return; }
+  if (!TELAS.length) { toast('⚠ No hay referencias cargadas', 'info'); return; }
 
   const params = getParams();
 
@@ -278,9 +278,11 @@ async function restaurarEscenario(idRepresentativo) {
 // ── ELIMINAR ESCENARIO ───────────────────────────────────────
 
 async function eliminarEscenario(idRepresentativo, nombre) {
-  const ok = typeof confirmar === 'function'
-    ? await confirmar(`¿Eliminar "${nombre}"?\nNo se puede deshacer.`, 'danger', 'Eliminar')
-    : window.confirm(`¿Eliminar "${nombre}"?`);
+  const _confirmar = typeof confirmar === 'function'
+    ? confirmar
+    : (window.parent?.confirmar ?? null);
+  if (!_confirmar) return;
+  const ok = await _confirmar(`¿Eliminar "${nombre}"? Esta acción no se puede deshacer.`, 'danger', 'Eliminar');
   if (!ok) return;
 
   const colId = document.getElementById('cons-col-select')?.value;

@@ -30,18 +30,10 @@ function getAuthConfig() {
   return { token, API };
 }
 
-
-/**
- * Inyecta el toolbar de Telas en #module-toolbar.
- * Misma estructura que buildToolbarInsumos().
- */
-// Puebla el <select id="sel-col-cargar"> que ya existe en el toolbar activo
-// sin reconstruir ningún toolbar. Llamar desde buildToolbarInsumos().
 function poblarSelectColecciones() {
   const sel = document.getElementById('sel-col-cargar');
   if (!sel) return;
   const current = sel.value;
-  // Mantener la primera opción placeholder y reemplazar el resto
   while (sel.options.length > 1) sel.remove(1);
   COLECCIONES.forEach(c => {
     const opt = document.createElement('option');
@@ -55,7 +47,6 @@ function poblarSelectColecciones() {
 }
 
 async function cargarColeccionesEnToolbar() {
-  // Detectar qué toolbar está activo para reconstruir el correcto
   const esInsumos = !!document.getElementById('toolbar-insumos');
 
   if (COLECCIONES.length) {
@@ -157,17 +148,11 @@ function buildToolbarTelas() {
       ` : `<span style="color:#fff;font-size:11px;opacity:.7">Solo Lectura</span>`}
     </div>`;
 
-  // Sincroniza el espaciador inmediatamente: no depender solo del
-  // ResizeObserver, que puede no haberse adjuntado aún en el primer render.
   if (typeof syncToolbarSpacer === 'function') syncToolbarSpacer();
-  // Si COLECCIONES aún no se ha cargado, disparar fetch y reconstruir
   if (!COLECCIONES.length) cargarColeccionesEnToolbar();
 }
 
 
-/**
- * Construye el HTML completo del pane de Telas.
- */
 function buildPaneTelas() {
   const pane = document.getElementById('pane-telas');
   if (!pane) return;
@@ -176,27 +161,33 @@ function buildPaneTelas() {
   buildToolbarTelas();
 
   pane.innerHTML = `
-    <!-- Zona de carga desde Excel -->
-    <div class="upload-zone" id="drop-telas"
-         ondragover="event.preventDefault();this.classList.add('drag')"
-         ondragleave="this.classList.remove('drag')"
-         ondrop="handleDrop(event,'telas')"
-         onclick="${edit ? "document.getElementById('file-telas').click()" : 'void(0)'}"
-         style="${edit ? '' : 'pointer-events:none;opacity:.6'}">
-      <span class="big">📂</span>
-      <b>${edit ? 'Cargar hoja TELA desde fichero Excel' : 'Solo lectura — sin permiso de carga'}</b><br>
-      <span style="font-size:10px;color:var(--tx3)">
-        Columnas: Colección · Referencia · Costo Taller · Mat1 · Prov1 · Mts1 · Precio1 … (hasta Mat4)
-      </span>
-      <input type="file" id="file-telas" accept=".xlsx,.xls"
-             style="display:none" onchange="handleFile(this,'telas')">
-      <div id="upload-status-telas"
-           style="margin-top:8px;font-size:11px;font-weight:600"></div>
+    <div style="padding:6px 12px 0">
+      <div id="drop-telas" style="
+        border:1.5px dashed var(--bd2,#B5B0A6);border-radius:6px;
+        padding:7px 16px;display:flex;align-items:center;gap:10px;
+        background:var(--wh,#fff);cursor:${edit ? 'pointer' : 'default'};
+        font-size:11px;color:var(--tx3);margin-bottom:8px;
+        ${edit ? '' : 'opacity:.6;pointer-events:none'}
+      "
+        ondragover="event.preventDefault();this.style.borderColor='var(--g3)';this.style.background='var(--gxlt)'"
+        ondragleave="this.style.borderColor='';this.style.background='var(--wh)'"
+        ondrop="handleDrop(event,'telas');this.style.borderColor='';this.style.background='var(--wh)'"
+        onclick="${edit ? "document.getElementById('file-telas').click()" : 'void(0)'}">
+        <span style="font-size:18px;flex-shrink:0">📂</span>
+        <span>
+          <b style="color:var(--tx,#1A1714)">${edit ? 'Cargar hoja TELA desde fichero Excel' : 'Solo lectura'}</b>
+          <span style="margin-left:8px;color:var(--tx3)">
+            Columnas: Colección · Referencia · Costo Taller · Mat1 · Prov1 · Mts1 · Precio1 … (hasta Mat4)
+          </span>
+        </span>
+        <input type="file" id="file-telas" accept=".xlsx,.xls"
+               style="display:none" onchange="handleFile(this,'telas')">
+        <span id="upload-status-telas" style="margin-left:auto;font-weight:600;color:var(--g1)"></span>
+      </div>
     </div>
 
-
-    <!-- Grilla estilo Excel -->
-    <div class="xgrid-wrap">
+    <div style="padding:0 12px 12px">
+      <div class="xgrid-wrap">
       <table class="xgrid" id="telas-grid">
         <thead>
           <tr>
@@ -235,15 +226,13 @@ function buildPaneTelas() {
         </thead>
         <tbody id="telas-body"></tbody>
       </table>
-    </div>`;
+    </div>
+  </div>`;
 
   renderTelas();
 }
 
 
-/**
- * Agrega una nueva fila de tela al array TELAS.
- */
 function addTelaRow(data) {
   const row = {
     id:     ID(),
@@ -262,9 +251,6 @@ function addTelaRow(data) {
 }
 
 
-/**
- * Renderiza el tbody de la grilla de telas.
- */
 function renderTelas() {
   const tbody = document.getElementById('telas-body');
   if (!tbody) return;
@@ -302,14 +288,12 @@ function renderTelas() {
 
     return `
       <tr class="xr" data-id="${row.id}">
-        <!-- Referencia -->
         <td class="fr" style="position:sticky;left:0;z-index:2;background:var(--wh,#fff)">${edit
           ? `<input class="ci left" style="font-weight:600;min-width:220px"
                value="${esc(row.ref)}" placeholder="Nombre referencia…"
                onchange="updateT('${row.id}','ref',null,null,this.value)">`
           : `<span class="cell-ro" style="text-align:left;font-weight:600">${esc(row.ref)}</span>`}
         </td>
-        <!-- Colección: fija si viene del Excel (tiene colId), seleccionable si es fila nueva -->
         <td>${edit && !row.colId
           ? `<select class="ci left" style="min-width:120px"
                onchange="updateTCol('${row.id}', this.value, this.options[this.selectedIndex].text)">
@@ -320,7 +304,6 @@ function renderTelas() {
              </select>`
           : `<span class="cell-ro" style="text-align:left;font-weight:600;color:var(--g1)">${esc(row.col)}</span>`}
         </td>
-        <!-- Costo Taller -->
         <td class="num">${edit
           ? `<input class="ci" type="number" value="${row.taller}"
                onchange="updateT('${row.id}','taller',null,null,this.value)"
@@ -342,9 +325,6 @@ function renderTelas() {
 }
 
 
-/**
- * Actualiza un campo de una fila de tela.
- */
 function updateT(id, field, mi, sf, val) {
   const row = TELAS.find(r => r.id === id);
   if (!row) return;
@@ -354,15 +334,6 @@ function updateT(id, field, mi, sf, val) {
 }
 
 
-/**
- * NOTA: updateTelaField() se movió a pane-consolidado.js,
- * que es el único módulo que la usa (ajuste/margen desde el Consolidado).
- */
-
-
-/**
- * Actualiza colId y col cuando el usuario elige colección manualmente.
- */
 function updateTCol(id, colId, colName) {
   const r = TELAS.find(x => x.id === id);
   if (!r) return;
@@ -371,18 +342,39 @@ function updateTCol(id, colId, colName) {
 }
 
 
-/**
- * Elimina una fila de tela.
- */
-function deleteTelaRow(id) {
-  TELAS = TELAS.filter(r => r.id !== id);
+async function deleteTelaRow(id) {
+  const row = TELAS.find(r => r.id === id);
+  if (!row) return;
+
+  if (row.idPREND) {
+    const confirmFn = window.confirmar || window.parent?.confirmar;
+    const ok = confirmFn
+      ? await confirmFn(`¿Eliminar "${row.ref}" de la base de datos?`, 'danger', 'Eliminar')
+      : confirm(`¿Eliminar "${row.ref}" de la base de datos?`);
+    if (!ok) return;
+
+    const { token, API } = getAuthConfig();
+    try {
+      const res  = await fetch(`${API}/prendas/${row.idPREND}`, {
+        method:  'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (!json.ok) { window.parent.toast('❌ ' + json.message, 'error'); return; }
+      window.parent.toast(`✓ "${row.ref}" eliminada de la BD`);
+    } catch (e) {
+      window.parent.toast('❌ Error de conexión: ' + e.message, 'error');
+      return;
+    }
+  }
+
+  TELAS   = TELAS.filter(r => r.id !== id);
+  INSUMOS = INSUMOS.filter(i => !(i.ref === row.ref && String(i.colId) === String(row.colId)));
   renderTelas();
+  renderInsumos();
 }
 
 
-/**
- * Elimina TODAS las filas de tela tras confirmación.
- */
 async function clearTelas() {
   const confirmFn = window.confirmar || window.parent?.confirmar;
   const ok = await confirmFn?.('¿Borrar todas las filas de tela?', 'danger', 'Borrar todo');
@@ -392,11 +384,6 @@ async function clearTelas() {
 }
 
 
-/**
- * Resuelve el ID de una colección por nombre.
- * Si no existe, la crea en la BD automáticamente.
- * Soporta: PRE-FALL 26, FALL WINTER 26, SPRING SUMMER 26
- */
 async function resolverOCrearColeccion(colNombre) {
   const encontrada = COLECCIONES.find(
     c => c.name.trim().toLowerCase() === colNombre.trim().toLowerCase()
@@ -431,20 +418,16 @@ async function resolverOCrearColeccion(colNombre) {
       referencias: 0
     };
     COLECCIONES.push(nueva);
-    toast(`✓ Colección "${colNombre}" creada automáticamente`);
+    window.parent.toast(`✓ Colección "${colNombre}" creada automáticamente`);
     return nueva;
 
   } catch (err) {
-    toast(`⚠ No se pudo crear la colección "${colNombre}": ${err.message}`, 'error');
+    window.parent.toast(`⚠ No se pudo crear la colección "${colNombre}": ${err.message}`, 'error');
     return null;
   }
 }
 
 
-/**
- * Importa filas desde Excel.
- * Resuelve o crea la colección automáticamente desde columna A.
- */
 async function importTelasRows(rows, sheetName, statusEl) {
   let added = 0;
 
@@ -499,13 +482,10 @@ async function importTelasRows(rows, sheetName, statusEl) {
     statusEl.textContent = `✓ ${added} referencia(s) importadas`;
     statusEl.style.color = 'var(--g1)';
   }
-  toast(`✓ Telas: ${added} referencias cargadas`);
+  window.parent.toast(`✓ Telas: ${added} referencias cargadas`);
 }
 
 
-/**
- * Construye el pane combinado Telas + Insumos.
- */
 function buildPaneMateria() {
   const pane = document.getElementById('pane-materia');
   if (!pane) return;
@@ -533,9 +513,6 @@ function buildPaneMateria() {
 
   buildSubPaneTelas();
   buildSubPaneInsumos();
-
-  // buildSubPaneInsumos sobreescribe el toolbar — restaurar el de telas con setTimeout
-  // para que el DOM ya esté listo cuando se inyecte
   setTimeout(() => buildToolbarTelas(), 0);
 }
 
@@ -552,7 +529,6 @@ function switchSubtab(which) {
   btnI.style.background = showTelas ? 'transparent' : 'var(--g1)';
   btnI.style.color      = showTelas ? 'var(--tx2)' : 'var(--bg)';
 
-  // Actualizar toolbar según el subtab activo
   if (showTelas) buildToolbarTelas();
   else           buildToolbarInsumos();
 }
@@ -574,42 +550,47 @@ function buildSubPaneInsumos() {
   sub.id = 'pane-insumos';
   buildPaneInsumos();
   sub.id = 'subpane-insumos';
-  // Restaurar display:none si estaba oculto antes de construir
   if (wasHidden) sub.style.display = 'none';
 }
 
 
 /**
  * Guarda todas las filas de telas en la BD.
- * Verifica duplicados locales antes de enviar.
+ * Si una referencia ya existe en la misma colección → muestra error y detiene esa fila.
  */
 async function guardarTelas() {
-  if (!TELAS.length) { toast('⚠ No hay datos para guardar', 'error'); return; }
+  if (!TELAS.length) { window.parent.toast('⚠ No hay datos para guardar', 'error'); return; }
 
   const { token, API } = getAuthConfig();
-  if (!token) { toast('⚠ Sin sesión activa', 'error'); return; }
+  if (!token) { window.parent.toast('⚠ Sin sesión activa', 'error'); return; }
 
   const fijosTotal = calcTtlFijos();
 
-  // Deduplicar en memoria — clave única es ref+colId (igual que en BD)
+  // Validar duplicados en la grilla ANTES de enviar — bloquea si hay ref+colId repetida
   const vistas = new Set();
-  const dupNombres = [];
-  TELAS = TELAS.filter(r => {
+  const dupEnGrilla = [];
+  for (const r of TELAS) {
     const clave = `${r.ref.trim().toLowerCase()}__${r.colId}`;
-    if (vistas.has(clave)) { dupNombres.push(r.ref); return false; }
-    vistas.add(clave);
-    return true;
-  });
-  if (dupNombres.length) { console.warn('Duplicadas eliminadas:', dupNombres); renderTelas(); }
+    if (vistas.has(clave)) dupEnGrilla.push(r.ref);
+    else vistas.add(clave);
+  }
+  if (dupEnGrilla.length) {
+    const lista = dupEnGrilla.length <= 3
+      ? dupEnGrilla.map(r => `"${r}"`).join(', ')
+      : `${dupEnGrilla.slice(0, 3).map(r => `"${r}"`).join(', ')} y ${dupEnGrilla.length - 3} más`;
+    window.parent.toast(
+      `❌ Referencias duplicadas en la grilla: ${lista}. Elimina las filas repetidas antes de guardar.`,
+      'error'
+    );
+    return;
+  }
 
-  // Separar prendas nuevas (sin idPREND) de existentes (con idPREND)
-  // Las existentes van directo a PUT — nunca hacer POST sobre algo que ya está en BD
   const nuevas     = TELAS.filter(r => !r.idPREND);
   const existentes = TELAS.filter(r =>  r.idPREND);
 
   let ok = 0, err = 0, bloqueadas = 0;
+  const dupRefs = []; // referencias rechazadas por duplicado en BD
 
-  // ── Helper para construir el body de cada prenda ──────────────────────────
   const buildBody = (row) => {
     const materiales = row.m
       .filter(m => m.mat)
@@ -633,7 +614,7 @@ async function guardarTelas() {
     };
   };
 
-  // ── 1. Prendas NUEVAS → POST /api/prendas/guardar ────────────────────────
+  // ── 1. Prendas NUEVAS → POST ──────────────────────────────────────────────
   for (const row of nuevas) {
     try {
       const res  = await fetch(`${API}/prendas/guardar`, {
@@ -644,20 +625,12 @@ async function guardarTelas() {
       const json = await res.json();
 
       if (json.ok) {
-        // Guardar el idPREND que devuelve el backend para que la fila quede "existente"
         row.idPREND = json.data?.prendaId || json.data?.idPREND || null;
         ok++;
       } else if (json.duplicado) {
-        // Ya existe en BD aunque no tenía idPREND en memoria → actualizar
-        const resPut = await fetch(`${API}/prendas/${json.idExistente}`, {
-          method:  'PUT',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body:    JSON.stringify(buildBody(row)),
-        });
-        const putJson = await resPut.json();
-        if (putJson.ok) { row.idPREND = json.idExistente; ok++; }
-        else if (putJson.bloqueada) { bloqueadas++; }
-        else { err++; console.error(`Error PUT "${row.ref}":`, putJson.message); }
+        // ── CAMBIO CLAVE: mostrar error, NO hacer PUT automático ──────────
+        dupRefs.push(row.ref);
+        err++;
       } else if (json.bloqueada) {
         bloqueadas++;
       } else {
@@ -670,7 +643,7 @@ async function guardarTelas() {
     }
   }
 
-  // ── 2. Prendas EXISTENTES → PUT /api/prendas/:id directo ─────────────────
+  // ── 2. Prendas EXISTENTES → PUT directo ──────────────────────────────────
   for (const row of existentes) {
     try {
       const res  = await fetch(`${API}/prendas/${row.idPREND}`, {
@@ -699,40 +672,39 @@ async function guardarTelas() {
     console.error('Error guardando insumos fijos:', e.message);
   }
 
-  // Toast con resumen claro
-  if (bloqueadas && !err) {
-    toast(`⚠ ${ok} guardadas · ${bloqueadas} bloqueadas (colección de año anterior)`, 'warn');
+  // ── Toast con resumen ─────────────────────────────────────────────────────
+  if (dupRefs.length) {
+    const lista = dupRefs.length <= 3
+      ? dupRefs.map(r => `"${r}"`).join(', ')
+      : `${dupRefs.slice(0, 3).map(r => `"${r}"`).join(', ')} y ${dupRefs.length - 3} más`;
+    window.parent.toast(
+      `❌ Referencia(s) duplicada(s) en esta colección: ${lista}. Elimínalas o cámbiales el nombre.`,
+      'error'
+    );
+  } else if (bloqueadas && !err) {
+    window.parent.toast(`⚠ ${ok} guardadas · ${bloqueadas} bloqueadas (colección de año anterior)`, 'warn');
   } else if (err) {
-    toast(`⚠ ${ok} guardadas · ${err} con error · ${bloqueadas} bloqueadas`, 'error');
+    window.parent.toast(`⚠ ${ok} guardadas · ${err} con error · ${bloqueadas} bloqueadas`, 'error');
   } else {
-    toast(`✓ ${ok} prenda(s) guardadas en BD`);
+    window.parent.toast(`✓ ${ok} prenda(s) guardadas en BD`);
   }
 }
 
 
-/**
- * Carga desde la BD todas las referencias de la colección seleccionada.
- */
-/**
- * Guarda los cambios actuales de la grilla en BD via PUT para prendas existentes.
- * Detecta qué filas tienen idPREND (vienen de BD) y las actualiza via PUT.
- * Las filas sin idPREND (nuevas) las guarda via POST (guardarTelas).
- */
 async function actualizarTelasPorColeccion() {
-  if (!TELAS.length) { toast('⚠ No hay datos en la grilla', 'error'); return; }
+  if (!TELAS.length) { window.parent.toast('⚠ No hay datos en la grilla', 'error'); return; }
 
-  // Forzar que todos los inputs activos disparen su onchange antes de leer TELAS
   document.activeElement?.blur();
   await new Promise(r => setTimeout(r, 50));
 
   const { token, API } = getAuthConfig();
-  if (!token) { toast('⚠ Sin sesión activa', 'error'); return; }
+  if (!token) { window.parent.toast('⚠ Sin sesión activa', 'error'); return; }
 
   const existentes = TELAS.filter(r => r.idPREND);
   const nuevas     = TELAS.filter(r => !r.idPREND);
 
   if (!existentes.length && nuevas.length) {
-    toast('ℹ Prendas nuevas — usa 💾 Guardar en BD');
+    window.parent.toast('ℹ Prendas nuevas — usa 💾 Guardar en BD');
     return;
   }
 
@@ -772,7 +744,6 @@ async function actualizarTelasPorColeccion() {
       const json = await res.json();
       if (json.ok) {
         ok++;
-        // Actualizar ref en INSUMOS si cambió
         if (insRow && insRow.ref !== row.ref) insRow.ref = row.ref;
       } else {
         err++;
@@ -785,26 +756,22 @@ async function actualizarTelasPorColeccion() {
   }
 
   if (err === 0) {
-    toast(`✓ ${ok} prenda(s) actualizadas correctamente`);
+    window.parent.toast(`✓ ${ok} prenda(s) actualizadas correctamente`);
   } else {
-    toast(`⚠ ${ok} actualizadas, ${err} con error`, 'error');
+    window.parent.toast(`⚠ ${ok} actualizadas, ${err} con error`, 'error');
   }
 }
 
 
-/**
- * Busca una prenda por nombre en TODAS las colecciones via API.
- * Muestra todos los resultados (una prenda puede existir en varias colecciones).
- */
 async function buscarPrendaIndividual() {
   const inp = document.getElementById('inp-buscar-prenda');
   const q   = inp?.value?.trim();
-  if (!q || q.length < 2) { toast('⚠ Escribe al menos 2 caracteres', 'error'); return; }
+  if (!q || q.length < 2) { window.parent.toast('⚠ Escribe al menos 2 caracteres', 'error'); return; }
 
   const { token, API } = getAuthConfig();
-  if (!token) { toast('⚠ Sin sesión activa', 'error'); return; }
+  if (!token) { window.parent.toast('⚠ Sin sesión activa', 'error'); return; }
 
-  toast('🔍 Buscando…');
+  window.parent.toast('🔍 Buscando…');
 
   try {
     const res  = await fetch(`${API}/prendas/buscar?q=${encodeURIComponent(q)}`, {
@@ -814,7 +781,7 @@ async function buscarPrendaIndividual() {
     if (!json.ok) throw new Error(json.message);
 
     if (!json.data?.length) {
-      toast(`Sin resultados para "${q}"`, 'warn');
+      window.parent.toast(`Sin resultados para "${q}"`, 'warn');
       return;
     }
 
@@ -868,10 +835,10 @@ async function buscarPrendaIndividual() {
     const msg = agregadas > 0
       ? `✓ ${agregadas} prenda(s) encontradas para "${q}"`
       : `⚠ "${q}" ya estaba cargada en la grilla`;
-    toast(msg);
+    window.parent.toast(msg);
 
   } catch (err) {
-    toast('❌ ' + err.message, 'error');
+    window.parent.toast('❌ ' + err.message, 'error');
   }
 }
 
@@ -879,7 +846,7 @@ async function buscarPrendaIndividual() {
 async function cargarTelasPorColeccion() {
   const sel   = document.getElementById('sel-col-cargar');
   const colId = sel?.value;
-  if (!colId) { toast('⚠ Selecciona una colección primero', 'error'); return; }
+  if (!colId) { window.parent.toast('⚠ Selecciona una colección primero', 'error'); return; }
 
   const colObj = COLECCIONES.find(c => c.id == colId);
 
@@ -896,7 +863,6 @@ async function cargarTelasPorColeccion() {
     INSUMOS = INSUMOS.filter(i => !json.data.find(p => p.Referencia === i.ref));
 
     json.data.forEach(p => {
-      // ── Telas ──────────────────────────────────────────────
       TELAS.push({
         id:      ID(),
         idPREND: p.idPREND,
@@ -914,7 +880,6 @@ async function cargarTelasPorColeccion() {
         margen: 40
       });
 
-      // ── Insumos variables ──────────────────────────────────
       const insVarBD = (p.insumosVar || []).map(i => ({
         name:   i.PRENDA_INSUMOS_VARcol || '',
         prov:   '',
@@ -928,7 +893,6 @@ async function cargarTelasPorColeccion() {
       });
     });
 
-    // ── Insumos fijos ─────────────────────────────────────────
     try {
       const resFijos = await fetch(`${API}/prendas/insumos-fijos`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -948,9 +912,9 @@ async function cargarTelasPorColeccion() {
 
     renderTelas();
     renderInsumos();
-    toast(`✓ ${json.data.length} referencias cargadas de "${colObj.name}"`);
+    window.parent.toast(`✓ ${json.data.length} referencias cargadas de "${colObj.name}"`);
 
   } catch (err) {
-    toast('❌ ' + err.message, 'error');
+    window.parent.toast('❌ ' + err.message, 'error');
   }
 }

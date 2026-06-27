@@ -14,19 +14,54 @@ class ColeccionService {
 
     static async crear(data, usuarioId) {
         const { NombreColeccion, Temporada, Año } = data;
-        if (!NombreColeccion) throw new Error('El nombre de la colección es obligatorio');
-        if (!Temporada)       throw new Error('La temporada es obligatoria');
-        if (!Año)             throw new Error('El año es obligatorio');
 
-        const id = await ColeccionModel.crear({ NombreColeccion, Temporada, Año });
+        // ── Validaciones de campos ──────────────────────────────────────────
+        if (!NombreColeccion || !NombreColeccion.trim())
+            throw new Error('El nombre de la colección es obligatorio');
+        if (!Temporada)
+            throw new Error('La temporada es obligatoria');
+
+        const año = parseInt(Año);
+        if (!Año && Año !== 0)
+            throw new Error('El año es obligatorio');
+        if (isNaN(año) || año < 2000 || año > 2100)
+            throw new Error('El año debe ser un valor válido (2000–2100)');
+
+        // ── Validación de nombre duplicado ──────────────────────────────────
+        const duplicado = await ColeccionModel.existeNombre(NombreColeccion.trim());
+        if (duplicado)
+            throw new Error(`Ya existe una colección con el nombre "${NombreColeccion.trim()}"`);
+
+        const id = await ColeccionModel.crear({
+            NombreColeccion: NombreColeccion.trim(),
+            Temporada,
+            Año: año
+        });
         return ColeccionModel.getById(id);
     }
 
     static async actualizar(id, data, usuarioId) {
         await ColeccionService.getById(id); // valida que existe
         const { NombreColeccion, Temporada, Año } = data;
-        if (!NombreColeccion) throw new Error('El nombre es obligatorio');
-        await ColeccionModel.actualizar(id, { NombreColeccion, Temporada, Año });
+
+        // ── Validaciones de campos ──────────────────────────────────────────
+        if (!NombreColeccion || !NombreColeccion.trim())
+            throw new Error('El nombre es obligatorio');
+
+        const año = parseInt(Año);
+        if (Año !== undefined && (isNaN(año) || año < 2000 || año > 2100))
+            throw new Error('El año debe ser un valor válido (2000–2100)');
+
+        // ── Validación de nombre duplicado (excluye la propia colección) ────
+        const duplicado = await ColeccionModel.existeNombre(NombreColeccion.trim(), id);
+        if (duplicado)
+            throw new Error(`Ya existe otra colección con el nombre "${NombreColeccion.trim()}"`);
+
+        await ColeccionModel.actualizar(id, {
+            NombreColeccion: NombreColeccion.trim(),
+            Temporada,
+            Año: año
+        });
         return ColeccionModel.getById(id);
     }
 

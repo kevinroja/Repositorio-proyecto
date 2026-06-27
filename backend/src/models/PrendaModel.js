@@ -281,6 +281,14 @@ async function buscarPorNombre(q) {
   return prendas;
 }
 
+// ── Eliminar prenda completa (CASCADE borra prenda_tela e prenda_insumos_var) ─
+async function eliminarPrenda(id) {
+  const result = await db.execute(
+    'DELETE FROM prenda WHERE idPREND = ?', [id]
+  );
+  return result.affectedRows;
+}
+
 module.exports = {
   guardarCompleto,
   actualizarCompleto,
@@ -290,4 +298,5 @@ module.exports = {
   obtenerOCrearColeccion,
   obtenerOCrearMaterial,
   buscarPorNombre,
+  eliminarPrenda,
 };

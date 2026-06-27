@@ -1,4 +1,3 @@
-.tn-group:hover .tn-dropdown,
 .tn-group.dd-open .tn-dropdown { display: block; }
 
 body.page-shell {
@@ -91,7 +90,6 @@ body.page-shell {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.tn-group:hover .tn-dropdown,
 .tn-group.dd-open .tn-dropdown { display: block; }
 
 .tn-dropdown a {

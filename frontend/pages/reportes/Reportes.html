@@ -41,9 +41,6 @@
     <button class="costeo-tab" onclick="cambiarTab('materiales',this)">
       <i class="ri-scissors-cut-line"></i> <span>Materiales</span>
     </button>
-    <button class="costeo-tab" onclick="cambiarTab('precios-canal',this)">
-      <i class="ri-store-line"></i> <span>Precios por Canal</span>
-    </button>
     <button class="costeo-tab" onclick="cambiarTab('historial',this)">
       <i class="ri-history-line"></i> <span>Historial</span>
     </button>
@@ -109,33 +106,19 @@
     </button>
   </div>
 
-  <!-- PRECIOS CANAL -->
-  <div class="rep-filters filter-panel" id="filtros-precios-canal">
-    <div class="field-group">
-      <label class="field-label">Colección</label>
-      <select id="f-pc-coleccion" class="field-input" style="min-width:180px;"><option value="">Todas</option></select>
-    </div>
-    <div class="field-group">
-      <label class="field-label">Canal de Venta</label>
-      <select id="f-pc-canal" class="field-input" style="min-width:160px;"><option value="">Todos</option></select>
-    </div>
-    <button class="btn btn-primary btn-sm" onclick="cargarReporte()">
-      <i class="ri-search-line"></i> Consultar
-    </button>
-    <button class="btn btn-cancel btn-sm" onclick="limpiarFiltros()">
-      <i class="ri-close-line"></i> Limpiar
-    </button>
-  </div>
-
   <!-- HISTORIAL -->
   <div class="rep-filters filter-panel" id="filtros-historial">
     <div class="field-group">
       <label class="field-label">Tabla</label>
-      <select id="f-his-tabla" class="field-input" style="min-width:140px;">
+      <select id="f-his-tabla" class="field-input" style="min-width:180px;">
         <option value="">Todas</option>
-        <option value="material">Material</option>
+        <option value="coleccion">Colección</option>
         <option value="prenda">Prenda</option>
+        <option value="prenda_tela">Prenda — Telas</option>
+        <option value="prenda_insumos_var">Prenda — Insumos Var.</option>
+        <option value="insumos_fijo_glovales">Insumos Fijos</option>
         <option value="costo_prenda">Costo Prenda</option>
+        <option value="precio_canal">Precio Canal</option>
       </select>
     </div>
     <div class="field-group">
@@ -197,9 +180,7 @@
       poblarSelect('f-col-año',       json.años,        'Año',          'Año');
       poblarSelect('f-col-temporada', json.temporadas,  'Temporada',    'Temporada');
       poblarSelect('f-pre-coleccion', json.colecciones, 'idCOLECCION',  'NombreColeccion');
-      poblarSelect('f-pc-coleccion',  json.colecciones, 'idCOLECCION',  'NombreColeccion');
       poblarSelect('f-mat-proveedor', json.proveedores, 'idPROVEEDOR',  'Nombre');
-      poblarSelect('f-pc-canal',      json.canales,     'idCanal',      'Nombre');
 
       cargarReporte();
     } catch (e) {
@@ -262,7 +243,7 @@
       'colecciones':   [['f-col-año','año'],['f-col-temporada','temporada']],
       'prendas':       [['f-pre-coleccion','coleccion_id'],['f-pre-referencia','referencia']],
       'materiales':    [['f-mat-tipo','tipo'],['f-mat-proveedor','proveedor_id']],
-      'precios-canal': [['f-pc-coleccion','coleccion_id'],['f-pc-canal','canal_id']],
+
       'historial':     [['f-his-tabla','tabla'],['f-his-accion','accion'],['f-his-desde','desde'],['f-his-hasta','hasta']],
     };
     (mapas[tabActual] || []).forEach(([id, key]) => {
@@ -305,14 +286,6 @@
         { label:'Materiales', value: data.length,                              cls:'teal' },
         { label:'Telas',      value: data.filter(r=>r.Tipo==='Tela').length,   cls:'' },
         { label:'Insumos',    value: data.filter(r=>r.Tipo==='Insumo').length, cls:'' },
-      ];
-    } else if (tabActual === 'precios-canal') {
-      const promUSD = data.reduce((s,r)=>s+Number(r.Precio_venta_USD||0),0)/(data.length||1);
-      const promCOP = data.reduce((s,r)=>s+Number(r.Precio_venta_cop||0),0)/(data.length||1);
-      metrics = [
-        { label:'Registros', value: data.length,             cls:'teal' },
-        { label:'Prom. USD', value: 'US$'+fmt(promUSD,2),    cls:'' },
-        { label:'Prom. COP', value: '$'+fmt(promCOP),        cls:'green' },
       ];
     } else if (tabActual === 'historial') {
       metrics = [
@@ -369,19 +342,6 @@
       { k:'total_metros_usados', l:'Total Metros',    f:v=>fmt(v,2) },
       { k:'costo_total_telas',   l:'Costo Telas',     f:fMoneda },
       { k:'costo_total_insumos', l:'Costo Insumos',   f:fMoneda },
-    ],
-    'precios-canal': [
-      { k:'Referencia',      l:'Referencia',    bold:true },
-      { k:'NombreColeccion', l:'Colección' },
-      { k:'canal',           l:'Canal' },
-      { k:'Kv_markup',       l:'KV Markup',     f:fPct },
-      { k:'Ajuste_USD',      l:'Ajuste USD',    f:fPct },
-      { k:'Margen_extra',    l:'Margen Extra',  f:fPct },
-      { k:'Sub_total1',      l:'Subtotal 1',    f:fMoneda },
-      { k:'Sub_total2',      l:'Subtotal 2',    f:fMoneda },
-      { k:'Precio_venta_cop',l:'Precio COP',    f:fMoneda, bold:true },
-      { k:'Precio_venta_USD',l:'Precio USD',    f:fMoneda2, bold:true },
-      { k:'trm',             l:'TRM',           f:fMoneda2 },
     ],
     'historial': [
       { k:'Fecha',          l:'Fecha',     f:fFechaHora },

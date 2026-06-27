@@ -476,7 +476,7 @@ function renderFichaCompleta(t, container) {
   const c           = calcRow(t, iRow, p);
   const col         = COLECCIONES.find(x => String(x.id) === String(t.colId))
                    || COLECCIONES.find(x => x.name === t.col);
-  const canSeePrice = ['admin', 'finanzas'].includes(currentUser?.role);
+  const canSeePrice = ['admin', 'finanzas', 'consulta'].includes(currentUser?.role);
 
   const mats    = (t.m   || []).filter(m => m.mat);
   const insVars = iRow ? (iRow.ins || []).filter(i => i.name) : [];

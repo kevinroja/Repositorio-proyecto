@@ -57,20 +57,10 @@
         <div class="tn-dropdown" id="dropCosteo"></div>
       </div>
 
-      <div class="tn-group">
-        <button class="tn-btn">
+      <div class="tn-group" id="secSoporte">
+        <button class="tn-btn" onclick="cargar('../soporte/Soporte.html',this)">
           <i class="ri-customer-service-2-line"></i> Soporte
-          <i class="ri-arrow-down-s-line"></i>
         </button>
-        <div class="tn-dropdown">
-          <a href="#" id="liSoporteUser" onclick="cargar('../soporte/Soporte.html',this)">
-            <i class="ri-tools-line"></i> Soporte Técnico
-          </a>
-          <a href="#" id="liSoporteAdmin" style="display:none"
-             onclick="cargar('../soporte/Soporte_Admin.html',this)">
-            <i class="ri-list-check"></i> Gestión de Tickets
-          </a>
-        </div>
       </div>
 
       <div class="tn-group">
@@ -121,28 +111,35 @@
       document.getElementById('secUsuarios').style.display    = 'flex';
       document.getElementById('secCosteo').style.display      = 'flex';
       document.getElementById('secReportes').style.display    = 'flex';
-      document.getElementById('liSoporteAdmin').style.display = 'block';
-      document.getElementById('liSoporteUser').style.display  = 'none';
-      document.getElementById('labelCosteo').textContent      = 'Administrador';
+      // Soporte rol 4 — solo Gestión de Tickets
+      const secSoporte4 = document.getElementById('secSoporte');
+      secSoporte4.innerHTML = `
+        <button class="tn-btn" onclick="cargar('../soporte/Soporte_Admin.html',this)">
+          <i class="ri-list-check"></i> Soporte
+        </button>`;
+      document.getElementById('labelCosteo').textContent = 'Administrador';
     }
 
     if (rol === 1) {
-      dropCosteo.innerHTML = `
-        <a href="#" onclick="cargar('../producto/telas-insumos.html',this)">
-          <i class="ri-ruler-line"></i> Telas & Insumos
-        </a>`;
-      document.getElementById('secCosteo').style.display = 'flex';
-      document.getElementById('labelCosteo').textContent = 'Materia Prima';
+      // Una sola opción — botón directo sin dropdown
+      document.getElementById('secReportes').style.display = 'flex';
+      const secCosteo = document.getElementById('secCosteo');
+      secCosteo.style.display = 'flex';
+      secCosteo.innerHTML = `
+        <button class="tn-btn" onclick="cargar('../producto/telas-insumos.html',this)">
+          <i class="ri-ruler-line"></i> Materia Prima
+        </button>`;
     }
 
     if (rol === 2) {
-      dropCosteo.innerHTML = `
-        <a href="#" onclick="cargar('../producto/consolidado.html',this)">
-          <i class="ri-bar-chart-line"></i> Consolidado
-        </a>
-`;
-      document.getElementById('secCosteo').style.display = 'flex';
-      document.getElementById('labelCosteo').textContent = 'Costeo';
+      // Una sola opción — botón directo sin dropdown
+      document.getElementById('secReportes').style.display = 'flex';
+      const secCosteo2 = document.getElementById('secCosteo');
+      secCosteo2.style.display = 'flex';
+      secCosteo2.innerHTML = `
+        <button class="tn-btn" onclick="cargar('../producto/consolidado.html',this)">
+          <i class="ri-bar-chart-line"></i> Costeo
+        </button>`;
     }
 
     window.kikaToken   = sesion.token;
@@ -155,6 +152,33 @@
         .forEach(a => a.classList.remove('active'));
       if (enlace) enlace.classList.add('active');
     }
+
+    // ── Click toggle para dropdowns ────────────────────────────────────
+    document.querySelectorAll('.tn-group').forEach(group => {
+      const btn = group.querySelector('.tn-btn');
+      const dd  = group.querySelector('.tn-dropdown');
+      if (!btn || !dd) return;
+
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const isOpen = group.classList.contains('dd-open');
+        // Cerrar todos los demás
+        document.querySelectorAll('.tn-group.dd-open').forEach(g => g.classList.remove('dd-open'));
+        if (!isOpen) group.classList.add('dd-open');
+      });
+    });
+
+    // Clic fuera cierra todos
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.tn-group.dd-open').forEach(g => g.classList.remove('dd-open'));
+    });
+
+    // Clic en link del dropdown cierra el menú
+    document.querySelectorAll('.tn-dropdown a').forEach(a => {
+      a.addEventListener('click', () => {
+        document.querySelectorAll('.tn-group.dd-open').forEach(g => g.classList.remove('dd-open'));
+      });
+    });
 
     document.getElementById('btnSalir').addEventListener('click', async () => {
       const ok = await confirmar('¿Deseas cerrar la sesión?', 'warning', 'Salir');
