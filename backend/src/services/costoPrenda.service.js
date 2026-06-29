@@ -1,283 +1,272 @@
 /**
- * costoPrenda.service.js
+ * costoPrenda.service.js  v3
  * Lógica de negocio para escenarios de costeo.
  *
- * Regla de nomenclatura automática:
- *   Una colección puede tener múltiples escenarios guardados.
- *   Cada escenario se identifica por:
- *     "{NombreColeccion} {Temporada} {Año} — Escenario N"
- *   donde N es el número correlativo dentro de esa colección.
- *
- * Estructura del "escenario":
- *   Un escenario en realidad es un conjunto de registros costo_prenda
- *   (uno por prenda de la colección) que comparten los mismos parámetros
- *   globales (TRM, KV Markup, %s, etc.).
- *
- *   Para agruparlos, usamos una convención:
- *     - Todos los costo_prenda del mismo escenario tienen el mismo
- *       valor de trm + kv_markup + exportacion_pct + aranceles_pct
- *       + amerindias + factoring + pct_10eleven + imprevistos +
- *       costo_financiero_iva guardados en el mismo bloque.
- *
- *   En la práctica el frontend envía UN objeto de parámetros globales
- *   + un array de prendas con sus valores individuales (ajuste, margen,
- *   precio_venta_final, costo_taller).
+ * Usa las tablas dedicadas:
+ *   escenario        → cabecera (parámetros globales + nombre + fecha)
+ *   escenario_prenda → detalle por prenda (ajuste, margen, shopmy, etc.)
  */
 
-const CostoPrendaModel = require('../models/costoPrenda.model');
-const db               = require('../config/db');
+const db = require('../config/db');
 
 const CostoPrendaService = {
 
   /**
-   * Lista los escenarios guardados para una colección.
-   * Agrupa los costo_prenda por "snapshot" de parámetros globales
-   * y les asigna el nombre automático.
-   *
-   * @param {number} colId
-   * @returns {Array} escenarios resumidos
+   * GET /api/costeo/escenarios?colId=X
+   * Lista los escenarios de una colección con resumen de parámetros.
    */
   async listarEscenarios(colId) {
-    // Traer todos los costo_prenda de la colección
-    const filas = await CostoPrendaModel.getByColeccion(colId);
-    if (!filas.length) return [];
+    const [escenarios] = await db.query(
+      `SELECT
+         e.idESCENARIO,
+         e.nombre,
+         e.fecha,
+         e.trm,
+         e.kv_markup,
+         e.rt_markup,
+         e.exportacion_pct,
+         e.aranceles_pct,
+         e.amerindias,
+         e.factoring,
+         e.pct_10eleven,
+         e.imprevistos,
+         e.costo_financiero_iva,
+         e.iva_pct,
+         e.tasa_fin_pct,
+         e.seguro_anual_cop,
+         e.n_prendas,
+         COUNT(ep.idESCENARIO_PRENDA) AS total_prendas
+       FROM escenario e
+       LEFT JOIN escenario_prenda ep ON ep.ESCENARIO_idESCENARIO = e.idESCENARIO
+       WHERE e.COLECCION_idCOLECCION = ?
+       GROUP BY e.idESCENARIO
+       ORDER BY e.fecha DESC`,
+      [colId]
+    );
 
-    // Agrupar por "huella" de parámetros globales
-    // (mismo bloque de parámetros = mismo escenario)
-    const grupos = new Map();
-
-    for (const f of filas) {
-      const huella = _huella(f);
-      if (!grupos.has(huella)) {
-        grupos.set(huella, {
-          huella,
-          trm:                  f.trm,
-          kv_markup:            f.kv_markup,
-          ajuste_usd:           f.ajuste_usd,
-          margen_extra:         f.margen_extra,
-          seguro_prenda:        f.seguro_prenda,
-          costo_financiero_iva: f.costo_financiero_iva,
-          imprevistos:          f.imprevistos,
-          factoring:            f.factoring,
-          exportacion_pct:      f.exportacion_pct,
-          aranceles_pct:        f.aranceles_pct,
-          amerindias:           f.amerindias,
-          pct_10eleven:         f.pct_10eleven,
-          // El ID representativo es el menor (primero insertado del grupo)
-          idRepresentativo:     f.idCOSTO_PRENDA,
-          prendas:              [],
-          fecha:                f.trm_fecha,
-        });
-      }
-      grupos.get(huella).prendas.push({
-        idCOSTO_PRENDA: f.idCOSTO_PRENDA,
-        prendaId:       f.PRENDA_idPREND,
-        referencia:     f.Referencia,
-        ajuste_usd:     f.ajuste_usd,
-        margen_extra:   f.margen_extra,
-        costo_taller:   f.costo_taller,
-        precio_final:   f.precio_venta_final,
-      });
-    }
-
-    // Obtener nombre de la colección para el label
-    const colInfo = await _getColInfo(colId);
-
-    // Convertir a array y asignar nombres correlativos
-    let i = 1;
-    const escenarios = [];
-    for (const g of grupos.values()) {
-      escenarios.push({
-        nombre:               `${colInfo} — Escenario ${i++}`,
-        trm:                  g.trm,
-        kv_markup:            g.kv_markup,
-        ajuste_usd:           g.ajuste_usd,
-        margen_extra:         g.margen_extra,
-        seguro_prenda:        g.seguro_prenda,
-        costo_financiero_iva: g.costo_financiero_iva,
-        imprevistos:          g.imprevistos,
-        factoring:            g.factoring,
-        exportacion_pct:      g.exportacion_pct,
-        aranceles_pct:        g.aranceles_pct,
-        amerindias:           g.amerindias,
-        pct_10eleven:         g.pct_10eleven,
-        idRepresentativo:     g.idRepresentativo,
-        fecha:                g.fecha,
-        total_prendas:        g.prendas.length,
-        prendas:              g.prendas,
-      });
-    }
-
-    return escenarios;
+    return escenarios.map(e => ({
+      idRepresentativo: e.idESCENARIO,
+      nombre:           e.nombre,
+      fecha:            e.fecha,
+      trm:              e.trm,
+      kv_markup:        e.kv_markup,
+      rt_markup:        e.rt_markup,
+      exportacion_pct:  e.exportacion_pct,
+      aranceles_pct:    e.aranceles_pct,
+      amerindias:       e.amerindias,
+      factoring:        e.factoring,
+      pct_10eleven:     e.pct_10eleven,
+      imprevistos:      e.imprevistos,
+      costo_fin_iva:    e.costo_financiero_iva,
+      iva_pct:          e.iva_pct,
+      tasa_fin_pct:     e.tasa_fin_pct,
+      seguro_anual_cop: e.seguro_anual_cop,
+      n_prendas:        e.n_prendas,
+      total_prendas:    e.total_prendas,
+    }));
   },
 
   /**
-   * Guarda un escenario completo para una colección.
+   * POST /api/costeo/escenarios
+   * Guarda un escenario completo: cabecera + detalle por prenda.
    *
-   * El frontend envía:
+   * Body esperado:
    * {
-   *   colId: number,
-   *   params: {                 ← parámetros globales
-   *     trm, kvMarkup, exportacionPct, arancelesPct,
-   *     amerindias, factoring, pct10eleven, imprevistos,
-   *     costoFinancieroIva, seguroAnualCop, nPrendas
+   *   colId:   number,
+   *   nombre:  string,           ← nombre libre del usuario
+   *   params: {
+   *     trm, kvMarkup, rtMarkup,
+   *     exportacionPct, arancelesPct, amerindias, factoring,
+   *     pct10eleven, imprevistos, costoFinancieroIva,
+   *     ivaPct, tasaFinPct, seguroAnualCop, nPrendas
    *   },
-   *   prendas: [{               ← una entrada por referencia visible
-   *     prendaId, ajusteUsd, margenExtra,
-   *     costoTaller, precioVentaFinal
-   *   }],
-   *   canales: [{               ← opcional, precios por canal
-   *     prendaId, canalId, kvMarkup, ajusteUsd, margenExtra,
-   *     subTotal1, subTotal2, precioCop, precioUsd
+   *   prendas: [{
+   *     prendaId, ajusteUsd, margenExtra, shopmy,
+   *     kvMarkupRow, costoTaller, precioVentaFinal, precioSug
    *   }]
    * }
-   *
-   * Inserta un costo_prenda por cada prenda.
-   * @returns {{ escenarioNum: number, ids: number[] }}
    */
   async guardarEscenario(body) {
-    const { colId, params, prendas, canales = [] } = body;
+    const { colId, nombre, params, prendas } = body;
 
     if (!colId)           throw new Error('colId es requerido');
+    if (!nombre?.trim())  throw new Error('El nombre del escenario es requerido');
     if (!params)          throw new Error('params es requerido');
     if (!prendas?.length) throw new Error('Se requiere al menos una prenda');
 
-    // Calcular seguro por prenda a partir del seguro anual global
-    const seguroPorPrenda = params.nPrendas
-      ? (params.seguroAnualCop || 0) / params.nPrendas
-      : 0;
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
 
-    const ids = [];
+      // 1. Insertar cabecera en escenario
+      const [resEsc] = await conn.execute(
+        `INSERT INTO escenario (
+           nombre, fecha, trm, kv_markup, rt_markup,
+           exportacion_pct, aranceles_pct, amerindias,
+           factoring, pct_10eleven, imprevistos,
+           costo_financiero_iva, iva_pct, tasa_fin_pct,
+           seguro_anual_cop, n_prendas,
+           COLECCION_idCOLECCION, USUARIO_idUSUARIO
+         ) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          nombre.trim(),
+          params.trm              ?? 0,
+          params.kvMarkup         ?? 0,
+          params.rtMarkup         ?? 0,
+          params.exportacionPct   ?? 0,
+          params.arancelesPct     ?? 0,
+          params.amerindias       ?? 0,
+          params.factoring        ?? 0,
+          params.pct10eleven      ?? 0,
+          params.imprevistos      ?? 0,
+          params.costoFinancieroIva ?? 0,
+          params.ivaPct           ?? 0,
+          params.tasaFinPct       ?? 0,
+          params.seguroAnualCop   ?? 0,
+          params.nPrendas         ?? 0,
+          colId,
+          body.usuarioId          ?? null,
+        ]
+      );
 
-    for (const pr of prendas) {
-      const id = await CostoPrendaModel.create({
-        prendaId:            pr.prendaId,
-        trmValor:            params.trm,
-        kvMarkup:            params.kvMarkup,
-        ajusteUsd:           pr.ajusteUsd      ?? 0,
-        margenExtra:         pr.margenExtra     ?? 0,
-        seguroPrenda:        seguroPorPrenda,
-        costoFinancieroIva:  params.costoFinancieroIva ?? 0,
-        imprevistos:         params.imprevistos ?? 0,
-        factoring:           params.factoring   ?? 0,
-        exportacionPct:      params.exportacionPct ?? 0,
-        arancelesPct:        params.arancelesPct   ?? 0,
-        amerindias:          params.amerindias  ?? 0,
-        pct10eleven:         params.pct10eleven ?? 0,
-        costoTaller:         pr.costoTaller     ?? 0,
-        precioVentaFinal:    pr.precioVentaFinal ?? 0,
-      });
-      ids.push(id);
+      const escenarioId = resEsc.insertId;
 
-      // Guardar precios de canal para esta prenda si vienen
-      const canalesPrenda = canales.filter(c => c.prendaId === pr.prendaId);
-      if (canalesPrenda.length) {
-        await CostoPrendaModel.savePreciosCanal(id, canalesPrenda);
+      // 2. Insertar detalle en escenario_prenda
+      for (const pr of prendas) {
+        await conn.execute(
+          `INSERT INTO escenario_prenda (
+             ESCENARIO_idESCENARIO, PRENDA_idPREND,
+             ajuste_usd, margen_extra, shopmy,
+             kv_markup_row, costo_taller,
+             precio_venta_final, precio_sug
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            escenarioId,
+            pr.prendaId,
+            pr.ajusteUsd        ?? 0,
+            pr.margenExtra      ?? 0,
+            pr.shopmy           ?? 0,
+            pr.kvMarkupRow      ?? null,
+            pr.costoTaller      ?? 0,
+            pr.precioVentaFinal ?? 0,
+            pr.precioSug        ?? null,
+          ]
+        );
       }
+
+      // 3. Registrar en historial
+      await conn.execute(
+        `INSERT INTO historial (
+           Tabla_afectada, Registro_id, Campo,
+           Valor_anterior, Valor_nuevo, Accion,
+           Fecha, Usuario_id
+         ) VALUES ('escenario', ?, 'nombre', NULL, ?, 'INSERT', NOW(), ?)`,
+        [escenarioId, nombre.trim(), body.usuarioId ?? null]
+      );
+
+      await conn.commit();
+
+      return {
+        escenarioId,
+        total: prendas.length,
+      };
+
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
-
-    // Calcular número de escenario resultante
-    const lista = await this.listarEscenarios(colId);
-    const escenarioNum = lista.length;
-
-    return { escenarioNum, ids, total: ids.length };
   },
 
   /**
-   * Elimina todos los costo_prenda de un escenario identificado
-   * por su idRepresentativo (el menor del grupo).
-   * Busca todos los registros con la misma huella de parámetros
-   * y los elimina.
+   * GET /api/costeo/escenarios/:id?colId=X
+   * Carga parámetros + prendas de un escenario para restaurar en el frontend.
    */
-  async eliminarEscenario(idRepresentativo, colId) {
-    // Obtener parámetros del representante
-    const rep = await CostoPrendaModel.getById(idRepresentativo);
-    if (!rep) throw new Error('Escenario no encontrado');
+  async cargarEscenario(escenarioId, colId) {
+    const [rows] = await db.query(
+      `SELECT * FROM escenario
+       WHERE idESCENARIO = ? AND COLECCION_idCOLECCION = ?`,
+      [escenarioId, colId]
+    );
+    if (!rows.length) throw new Error('Escenario no encontrado');
 
-    // Traer todos los costo_prenda de la colección
-    const todos = await CostoPrendaModel.getByColeccion(colId);
+    const e = rows[0];
 
-    // Filtrar los que tienen la misma huella
-    const mismaHuella = _huella(rep);
-    const aEliminar = todos.filter(f => _huella(f) === mismaHuella);
-
-    for (const f of aEliminar) {
-      await CostoPrendaModel.delete(f.idCOSTO_PRENDA);
-    }
-
-    return { eliminados: aEliminar.length };
-  },
-
-  /**
-   * Carga los parámetros de un escenario para restaurarlos en el frontend.
-   * Devuelve los params globales + array de prendas con ajuste/margen.
-   */
-  async cargarEscenario(idRepresentativo, colId) {
-    const todos = await CostoPrendaModel.getByColeccion(colId);
-    const rep   = todos.find(f => f.idCOSTO_PRENDA === parseInt(idRepresentativo));
-    if (!rep) throw new Error('Escenario no encontrado');
-
-    const mismaHuella = _huella(rep);
-    const prendas = todos.filter(f => _huella(f) === mismaHuella);
+    const [prendas] = await db.query(
+      `SELECT ep.*, p.Referencia
+       FROM escenario_prenda ep
+       JOIN prenda p ON p.idPREND = ep.PRENDA_idPREND
+       WHERE ep.ESCENARIO_idESCENARIO = ?`,
+      [escenarioId]
+    );
 
     return {
       params: {
-        trm:                rep.trm,
-        kvMarkup:           rep.kv_markup,
-        exportacionPct:     rep.exportacion_pct,
-        arancelesPct:       rep.aranceles_pct,
-        amerindias:         rep.amerindias,
-        factoring:          rep.factoring,
-        pct10eleven:        rep.pct_10eleven,
-        imprevistos:        rep.imprevistos,
-        costoFinancieroIva: rep.costo_financiero_iva,
-        seguroPrenda:       rep.seguro_prenda,
+        trm:                e.trm,
+        kvMarkup:           e.kv_markup,
+        rtMarkup:           e.rt_markup,
+        exportacionPct:     e.exportacion_pct,
+        arancelesPct:       e.aranceles_pct,
+        amerindias:         e.amerindias,
+        factoring:          e.factoring,
+        pct10eleven:        e.pct_10eleven,
+        imprevistos:        e.imprevistos,
+        costoFinancieroIva: e.costo_financiero_iva,
+        ivaPct:             e.iva_pct,
+        tasaFinPct:         e.tasa_fin_pct,
+        seguroAnualCop:     e.seguro_anual_cop,
+        nPrendas:           e.n_prendas,
       },
-      prendas: prendas.map(f => ({
-        idCOSTO_PRENDA: f.idCOSTO_PRENDA,
-        prendaId:       f.PRENDA_idPREND,
-        referencia:     f.Referencia,
-        ajusteUsd:      f.ajuste_usd,
-        margenExtra:    f.margen_extra,
-        costoTaller:    f.costo_taller,
-        precioFinal:    f.precio_venta_final,
+      prendas: prendas.map(p => ({
+        prendaId:        p.PRENDA_idPREND,
+        referencia:      p.Referencia,
+        ajusteUsd:       p.ajuste_usd,
+        margenExtra:     p.margen_extra,
+        shopmy:          p.shopmy,
+        kvMarkupRow:     p.kv_markup_row,
+        costoTaller:     p.costo_taller,
+        precioVentaFinal: p.precio_venta_final,
+        precioSug:       p.precio_sug,
       })),
     };
   },
+
+  /**
+   * DELETE /api/costeo/escenarios/:id?colId=X
+   * Elimina un escenario completo (cabecera + detalle en cascada).
+   */
+  async eliminarEscenario(escenarioId, colId) {
+    const [rows] = await db.query(
+      `SELECT idESCENARIO FROM escenario
+       WHERE idESCENARIO = ? AND COLECCION_idCOLECCION = ?`,
+      [escenarioId, colId]
+    );
+    if (!rows.length) throw new Error('Escenario no encontrado');
+
+    // escenario_prenda se elimina en cascada por FK
+    await db.query(
+      'DELETE FROM escenario WHERE idESCENARIO = ?',
+      [escenarioId]
+    );
+
+    return { eliminados: 1 };
+  },
+
+  /**
+   * PUT /api/costeo/escenarios/:id
+   * Actualiza el nombre de un escenario existente.
+   */
+  async actualizarNombre(escenarioId, nombre) {
+    if (!nombre?.trim()) throw new Error('El nombre es requerido');
+
+    await db.query(
+      'UPDATE escenario SET nombre = ? WHERE idESCENARIO = ?',
+      [nombre.trim(), escenarioId]
+    );
+
+    return { actualizado: true };
+  },
 };
-
-// ── helpers privados ─────────────────────────────────────────────
-
-/**
- * Genera una "huella" (fingerprint) de los parámetros globales de un
- * registro costo_prenda, para agrupar registros del mismo escenario.
- */
-function _huella(f) {
-  return [
-    f.trm,
-    f.kv_markup,
-    f.exportacion_pct,
-    f.aranceles_pct,
-    f.amerindias,
-    f.factoring,
-    f.pct_10eleven,
-    f.imprevistos,
-    f.costo_financiero_iva,
-    f.seguro_prenda,
-  ].map(v => Number(v).toFixed(4)).join('|');
-}
-
-/**
- * Obtiene el label "NombreColeccion · Temporada Año" para nombrar escenarios.
- */
-async function _getColInfo(colId) {
-  const rows = await db.query(
-    'SELECT NombreColeccion, Temporada, Año FROM coleccion WHERE idCOLECCION = ?',
-    [colId]
-  );
-  if (!rows.length) return `Colección ${colId}`;
-  const c = rows[0];
-  return `${c.NombreColeccion} · ${c.Temporada} ${c.Año}`;
-}
 
 module.exports = CostoPrendaService;

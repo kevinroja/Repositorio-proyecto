@@ -9,12 +9,12 @@ const D = v => parseFloat(v) || 0;
 // Convierte porcentaje (15) a decimal (0.15)
 const pct = v => D(v) / 100;
 
-// Formatea número como COP sin decimales: 1234567 → "1.234.567"
+// Formatea número como entero sin decimales: 1234567 → "1.234.567"
 const fmt = n =>
-  new Intl.NumberFormat('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    .format(D(n));
+  new Intl.NumberFormat('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+    .format(Math.round(D(n)));
 
-// Alias de fmt para valores USD (redondeados al entero)
+// Alias para valores USD — también entero
 const fmtU = n => fmt(Math.round(D(n)));
 
 // Fecha y hora actual en formato colombiano
