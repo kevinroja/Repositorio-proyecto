@@ -36,6 +36,12 @@ app.use('/api/soporte',     soporteRoutes);
 app.use('/api/reportes',    reportsRoutes);
 app.use('/api/costeo/escenarios', escenarioRoutes);
 
+app.get('/api/files', (req, res) => {
+  const fs = require('fs');
+  const p = require('path').resolve(__dirname, '..', 'frontend', 'css');
+  try { res.json({ files: fs.readdirSync(p), path: p }); } catch(e) { res.json({ error: e.message, path: p }); }
+});
+
 // ─── Ruta de salud ────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Servidor corriendo', timestamp: new Date() });
