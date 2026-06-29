@@ -19,7 +19,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ─── Servir frontend estático ─────────────────────────────
-app.use(express.static(path.join(__dirname, '../frontend')));
+app.use(express.static(path.resolve(__dirname, '..', 'frontend')));
 
 // ─── Rutas API ────────────────────────────────────────────
 app.use('/api/auth',        usuarioRoutes);
