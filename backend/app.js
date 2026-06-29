@@ -19,6 +19,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ─── Servir frontend estático ─────────────────────────────
+app.use((req, res, next) => {
+  if (req.path.endsWith('.css')) res.type('text/css');
+  else if (req.path.endsWith('.js')) res.type('application/javascript');
+  next();
+});
 app.use(express.static(path.resolve(__dirname, '..', 'frontend')));
 
 // ─── Rutas API ────────────────────────────────────────────
