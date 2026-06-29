@@ -20,6 +20,18 @@
   <div id="pane-consolidado" class="pane active" style="padding:20px"></div>
 </div>
 
+<!--
+  Input estático para nombre de escenario.
+  DEBE ser HTML estático (no inyectado con innerHTML) para que los eventos
+  de teclado funcionen correctamente dentro del iframe.
+  Se mueve visualmente al panel de escenarios via appendChild en JS.
+-->
+<input id="esc-nombre-input"
+       type="text"
+       placeholder="Nombre del escenario…"
+       autocomplete="off"
+       style="position:fixed;top:-999px;left:-999px;width:1px;height:1px;opacity:0">
+
 <div id="toast"></div>
 
 <!-- ── SCRIPTS DEL MÓDULO (el orden importa) ── -->
@@ -88,8 +100,6 @@
 
 <script>
   // ── FIJAR COLUMNA REFERENCIA DURANTE EL SCROLL HORIZONTAL ──
-  // Ver consolidado.css para la explicación completa de por qué
-  // position:sticky no basta en este layout.
   function syncStickyRef() {
     const x = window.scrollX || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
     document.querySelectorAll('.xgrid th.fr, .xgrid td.fr').forEach(cell => {

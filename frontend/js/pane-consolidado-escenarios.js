@@ -1,14 +1,15 @@
 /**
  * ============================================================
- * ARCHIVO: js/pane-consolidado-escenarios.js  v4
+ * ARCHIVO: js/pane-consolidado-escenarios.js  v5
  * DESCRIPCIÓN: Guardado y carga de escenarios de costeo.
- * Incluir DESPUÉS de pane-consolidado.js en producto.html.
+ * El input #esc-nombre-input es HTML estático en consolidado.html
+ * para evitar bug de eventos en iframe con innerHTML dinámico.
  * ============================================================
  */
 
-
-// ── VARIABLE GLOBAL PARA NOMBRE ─────────────────────────────
+// Variable global para capturar nombre (respaldo)
 var _escNombreActual = '';
+
 
 // ── INYECCIÓN EN EL PANE ─────────────────────────────────────
 
@@ -17,6 +18,7 @@ function inyectarPanelEscenarios() {
   if (!pane) return;
   if (document.getElementById('escenarios-panel')) return;
 
+  // Botón Guardar en selector card
   const selectorCard = document.getElementById('consolidado-selector-card');
   if (selectorCard) {
     const btnGuardar = document.createElement('button');
@@ -32,28 +34,29 @@ function inyectarPanelEscenarios() {
     }
   }
 
+  // Panel de escenarios
   const panel = document.createElement('div');
   panel.id        = 'escenarios-panel';
   panel.className = 'card';
   panel.style.cssText = 'margin-bottom:12px';
-  panel.innerHTML = `
-    <div class="card-head" style="cursor:pointer" onclick="toggleEscenariosPanel()">
-      <h3>📂 Escenarios Guardados
-        <span id="escenarios-count"
-              style="font-size:11px;color:var(--tx3);font-weight:400;margin-left:6px"></span>
-      </h3>
-      <button class="btn btn-o btn-sm" style="margin-left:auto"
-              onclick="event.stopPropagation();cargarEscenarios()">
-        ↺ Actualizar
-      </button>
-      <span id="esc-arrow" style="font-size:11px;margin-left:8px;color:var(--tx3)">▼</span>
-    </div>
-
-    <div id="escenarios-body" style="padding:4px 4px 8px">
-      <p style="font-size:12px;color:var(--tx3);padding:12px 8px">
-        Selecciona una colección para ver sus escenarios guardados.
-      </p>
-    </div>`;
+  panel.innerHTML =
+    '<div class="card-head" style="cursor:pointer" onclick="toggleEscenariosPanel()">' +
+      '<h3>📂 Escenarios Guardados' +
+        '<span id="escenarios-count" style="font-size:11px;color:var(--tx3);font-weight:400;margin-left:6px"></span>' +
+      '</h3>' +
+      '<button class="btn btn-o btn-sm" style="margin-left:auto" onclick="event.stopPropagation();cargarEscenarios()">↺ Actualizar</button>' +
+      '<span id="esc-arrow" style="font-size:11px;margin-left:8px;color:var(--tx3)">▼</span>' +
+    '</div>' +
+    // Fila con input de nombre — el input real (#esc-nombre-input) es estático en el HTML
+    // Este div solo es el contenedor visual
+    '<div id="esc-nombre-row" style="padding:8px 8px 4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+      '<label style="font-size:12px;color:var(--tx2);font-weight:500;white-space:nowrap">Nombre:</label>' +
+      '<div id="esc-input-slot" style="flex:1;min-width:200px;max-width:400px"></div>' +
+      '<span style="font-size:11px;color:var(--tx3)">← para el nuevo escenario</span>' +
+    '</div>' +
+    '<div id="escenarios-body" style="padding:4px 4px 8px">' +
+      '<p style="font-size:12px;color:var(--tx3);padding:12px 8px">Selecciona una colección para ver sus escenarios guardados.</p>' +
+    '</div>';
 
   const paramsCard = document.getElementById('params-card');
   if (paramsCard) {
@@ -62,154 +65,56 @@ function inyectarPanelEscenarios() {
     pane.appendChild(panel);
   }
 
-  // oninput/onchange inline en el HTML ya capturan _escNombreActual — no se necesita listener adicional
+  // Mover el input estático (#esc-nombre-input) al slot visual del panel
+  setTimeout(function() {
+    const inp  = document.getElementById('esc-nombre-input');
+    const slot = document.getElementById('esc-input-slot');
+    if (inp && slot) {
+      // Aplicar estilos visibles
+      inp.style.cssText = [
+        'width:100%',
+        'box-sizing:border-box',
+        'padding:7px 10px',
+        'font-size:12px',
+        'border:1.5px solid var(--brd,#ddd)',
+        'border-radius:6px',
+        'font-family:inherit',
+        'background:var(--bg1,#fafafa)',
+        'color:var(--tx1,#1a1a1a)',
+        'outline:none',
+        'position:static',
+        'opacity:1',
+        'pointer-events:auto',
+        'top:auto',
+        'left:auto',
+        'width:100%',
+        'height:auto',
+      ].join(';');
+      slot.appendChild(inp);
+    }
+  }, 100);
 }
 
 
-// ── NOMBRE ESCENARIO — input inline ─────────────────────────
+// ── LEER NOMBRE ──────────────────────────────────────────────
 
 function _pedirNombreEscenario() {
-  // Chrome en iframes bloquea eventos de teclado nativos — .value siempre vacío.
-  // Solución: usar prompt() del padre que corre fuera del iframe.
-  var sugerencia = _escNombreActual.trim() || '';
-  var val = (window.parent && window.parent.prompt)
-    ? window.parent.prompt('Nombre del escenario:', sugerencia)
-    : prompt('Nombre del escenario:', sugerencia);
+  var val = '';
+  try {
+    var inp = document.getElementById('esc-nombre-input');
+    if (inp) val = inp.value.trim();
+  } catch(e) {}
 
-  if (val === null) return Promise.resolve(null); // usuario canceló
-  val = val.trim();
   if (!val) {
-    var _toast = (window.parent && window.parent.toast) ? window.parent.toast : toast;
-    _toast('⚠ Escribe un nombre para el escenario', 'info');
+    var inp2 = document.getElementById('esc-nombre-input');
+    if (inp2) { inp2.style.border = '1.5px solid #EF5350'; inp2.focus(); }
+    toast('⚠ Escribe un nombre para el escenario');
     return Promise.resolve(null);
   }
-  _escNombreActual = '';
+
+  var inp3 = document.getElementById('esc-nombre-input');
+  if (inp3) inp3.style.border = '';
   return Promise.resolve(val);
-}
-
-function _pedirNombreEscenario_UNUSED() {
-  return new Promise(resolve => {
-    // Limpiar modal previo
-    document.getElementById('modal-nombre-esc')?.remove();
-
-    const hoy = new Date().toLocaleDateString('es-CO');
-    const overlay = document.createElement('div');
-    overlay.id = 'modal-nombre-esc';
-    overlay.style.cssText = [
-      'position:fixed',
-      'inset:0',
-      'background:rgba(0,0,0,.45)',
-      'z-index:9999',
-      'display:flex',
-      'align-items:center',
-      'justify-content:center',
-    ].join(';');
-
-    // Crear contenido del modal sin template literals para evitar
-    // problemas de interpolación en contexto de iframe
-    const box = document.createElement('div');
-    box.style.cssText = [
-      'background:#fff',
-      'border-radius:10px',
-      'padding:24px 28px',
-      'min-width:340px',
-      'max-width:480px',
-      'width:90%',
-      'box-shadow:0 8px 32px rgba(0,0,0,.22)',
-      'font-family:inherit',
-    ].join(';');
-
-    const titulo = document.createElement('h3');
-    titulo.textContent = '💾 Guardar Escenario';
-    titulo.style.cssText = 'margin:0 0 6px;font-size:15px;color:#1a1a1a';
-
-    const desc = document.createElement('p');
-    desc.textContent = 'Ingresa un nombre para identificar este escenario de costeo.';
-    desc.style.cssText = 'margin:0 0 14px;font-size:12px;color:#888';
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = 'Escenario ' + hoy;
-    input.placeholder = 'Ej: PRE-FALL 26 — Canal A';
-    input.style.cssText = [
-      'width:100%',
-      'box-sizing:border-box',
-      'padding:9px 12px',
-      'font-size:13px',
-      'border:1.5px solid #ddd',
-      'border-radius:6px',
-      'outline:none',
-      'font-family:inherit',
-      'color:#1a1a1a',
-      'background:#fafafa',
-    ].join(';');
-
-    const errorMsg = document.createElement('p');
-    errorMsg.textContent = 'El nombre no puede estar vacío.';
-    errorMsg.style.cssText = 'margin:6px 0 0;font-size:11px;color:#EF5350;display:none';
-
-    const btnRow = document.createElement('div');
-    btnRow.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;margin-top:18px';
-
-    const btnCan = document.createElement('button');
-    btnCan.textContent = 'Cancelar';
-    btnCan.className = 'btn btn-o btn-sm';
-    btnCan.style.minWidth = '80px';
-
-    const btnOk = document.createElement('button');
-    btnOk.textContent = 'Guardar';
-    btnOk.className = 'btn btn-g btn-sm';
-    btnOk.style.minWidth = '100px';
-
-    btnRow.appendChild(btnCan);
-    btnRow.appendChild(btnOk);
-    box.appendChild(titulo);
-    box.appendChild(desc);
-    box.appendChild(input);
-    box.appendChild(errorMsg);
-    box.appendChild(btnRow);
-    overlay.appendChild(box);
-
-    // Expandir iframe para cubrir toda la pantalla
-    const iframe = window.frameElement;
-    let prevStyle = '';
-    if (iframe) {
-      prevStyle = iframe.getAttribute('style') || '';
-      iframe.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;z-index:9998;border:none';
-    }
-
-    document.body.appendChild(overlay);
-    setTimeout(() => { input.focus(); input.select(); }, 50);
-
-    const restaurarIframe = () => {
-      if (iframe) iframe.setAttribute('style', prevStyle);
-    };
-
-    const confirmar = () => {
-      const val = input.value.trim();
-      if (!val) { errorMsg.style.display = ''; input.focus(); return; }
-      overlay.remove();
-      restaurarIframe();
-      resolve(val);
-    };
-
-    const cancelar = () => {
-      overlay.remove();
-      restaurarIframe();
-      resolve(null);
-    };
-
-    btnOk.addEventListener('click', confirmar);
-    btnCan.addEventListener('click', cancelar);
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') confirmar();
-      if (e.key === 'Escape') cancelar();
-      errorMsg.style.display = 'none';
-    });
-    overlay.addEventListener('click', e => {
-      if (e.target === overlay) cancelar();
-    });
-  });
 }
 
 
@@ -257,7 +162,7 @@ async function guardarEscenario() {
     nPrendas:           params.np,
   };
 
-  const API   = window.parent?.API_URL || window.location.origin + '/api';
+  const API   = window.parent?.API_URL || 'http://localhost:3000/api';
   const token = window.parent?.kikaToken || sessionStorage.getItem('kika_token');
 
   const btn = document.getElementById('btn-guardar-escenario');
@@ -270,18 +175,16 @@ async function guardarEscenario() {
         'Content-Type':  'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        colId:   parseInt(colId),
-        nombre:  nombre,
-        params:  paramsGuardar,
-        prendas,
-      }),
+      body: JSON.stringify({ colId: parseInt(colId), nombre, params: paramsGuardar, prendas }),
     });
     const json = await res.json();
     if (!json.ok) throw new Error(json.message);
 
+    // Limpiar input
+    const ni = document.getElementById('esc-nombre-input');
+    if (ni) ni.value = '';
+
     toast('✓ ' + json.message);
-    const ni = document.getElementById('esc-nombre-input'); if (ni) ni.value = ''; _escNombreActual = '';
     addHist('Guardó escenario de costeo', 'Costeo', 'colId=' + colId + ', prendas=' + prendas.length);
     await cargarEscenarios();
 
@@ -309,7 +212,7 @@ async function cargarEscenarios() {
 
   body.innerHTML = '<p style="font-size:12px;color:var(--tx3);padding:12px 8px">⏳ Cargando…</p>';
 
-  const API   = window.parent?.API_URL || window.location.origin + '/api';
+  const API   = window.parent?.API_URL || 'http://localhost:3000/api';
   const token = window.parent?.kikaToken || sessionStorage.getItem('kika_token');
 
   try {
@@ -333,21 +236,22 @@ async function cargarEscenarios() {
       const fecha = e.fecha ? new Date(e.fecha).toLocaleDateString('es-CO') : '—';
       const kv    = parseFloat(e.kv_markup  || 0).toFixed(2);
       const rt    = parseFloat(e.rt_markup  || 0).toFixed(2);
-      filas += '<tr style="border-bottom:1px solid var(--brd);background:' + bg + '">' +
-        '<td style="padding:8px 10px;font-weight:600;color:var(--tx1)">' + esc(e.nombre) +
-          '<span style="display:block;font-size:10px;color:var(--tx3);font-weight:400">' + fecha + '</span>' +
-        '</td>' +
-        '<td style="padding:8px;text-align:right;font-family:var(--mono)">$' + fmt(e.trm) + '</td>' +
-        '<td style="padding:8px;text-align:right;font-family:var(--mono)">×' + kv + '</td>' +
-        '<td style="padding:8px;text-align:right;font-family:var(--mono)">×' + rt + '</td>' +
-        '<td style="padding:8px;text-align:right;font-family:var(--mono)">' + e.exportacion_pct + '%</td>' +
-        '<td style="padding:8px;text-align:right;font-family:var(--mono)">' + e.aranceles_pct + '%</td>' +
-        '<td style="padding:8px;text-align:right">' + e.total_prendas + '</td>' +
-        '<td style="padding:6px 8px;text-align:center;white-space:nowrap">' +
-          '<button class="btn btn-o btn-sm" style="margin-right:4px" onclick="restaurarEscenario(' + e.idRepresentativo + ')" title="Cargar estos parámetros en el consolidado">↩ Restaurar</button>' +
-          '<button class="btn btn-sm" style="background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA" onclick="eliminarEscenario(' + e.idRepresentativo + ',\'' + esc(e.nombre) + '\')" title="Eliminar este escenario">🗑</button>' +
-        '</td>' +
-      '</tr>';
+      filas +=
+        '<tr style="border-bottom:1px solid var(--brd);background:' + bg + '">' +
+          '<td style="padding:8px 10px;font-weight:600;color:var(--tx1)">' + esc(e.nombre) +
+            '<span style="display:block;font-size:10px;color:var(--tx3);font-weight:400">' + fecha + '</span>' +
+          '</td>' +
+          '<td style="padding:8px;text-align:right;font-family:var(--mono)">$' + fmt(e.trm) + '</td>' +
+          '<td style="padding:8px;text-align:right;font-family:var(--mono)">×' + kv + '</td>' +
+          '<td style="padding:8px;text-align:right;font-family:var(--mono)">×' + rt + '</td>' +
+          '<td style="padding:8px;text-align:right;font-family:var(--mono)">' + e.exportacion_pct + '%</td>' +
+          '<td style="padding:8px;text-align:right;font-family:var(--mono)">' + e.aranceles_pct + '%</td>' +
+          '<td style="padding:8px;text-align:right">' + e.total_prendas + '</td>' +
+          '<td style="padding:6px 8px;text-align:center;white-space:nowrap">' +
+            '<button class="btn btn-o btn-sm" style="margin-right:4px" onclick="restaurarEscenario(' + e.idRepresentativo + ')">↩ Restaurar</button>' +
+            '<button class="btn btn-sm" style="background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA" onclick="eliminarEscenario(' + e.idRepresentativo + ',\'' + esc(e.nombre) + '\')">🗑</button>' +
+          '</td>' +
+        '</tr>';
     });
 
     body.innerHTML =
@@ -380,7 +284,7 @@ async function restaurarEscenario(idRepresentativo) {
   const colId = document.getElementById('cons-col-select')?.value;
   if (!colId) return;
 
-  const API   = window.parent?.API_URL || window.location.origin + '/api';
+  const API   = window.parent?.API_URL || 'http://localhost:3000/api';
   const token = window.parent?.kikaToken || sessionStorage.getItem('kika_token');
 
   try {
@@ -439,7 +343,7 @@ async function eliminarEscenario(idRepresentativo, nombre) {
   if (!ok) return;
 
   const colId = document.getElementById('cons-col-select')?.value;
-  const API   = window.parent?.API_URL || window.location.origin + '/api';
+  const API   = window.parent?.API_URL || 'http://localhost:3000/api';
   const token = window.parent?.kikaToken || sessionStorage.getItem('kika_token');
 
   try {
