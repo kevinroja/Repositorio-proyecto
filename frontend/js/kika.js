@@ -14,7 +14,7 @@
    ============================================================ */
 
 /** URL base del backend. Cambiar en producción. */
-const API_URL = 'http://localhost:3000/api';
+const API_URL = window.location.origin + '/api';
 
 /** Mapa de id de rol → nombre legible */
 const ROLES = {

@@ -13,7 +13,7 @@
  */
 
 // ── Helpers de conexión (mismo patrón que pane-colecciones.js) ──
-const CQ_API      = window.parent?.API_URL || 'http://localhost:3000/api';
+const CQ_API      = window.parent?.API_URL || window.location.origin + '/api';
 const cqGetToken  = () => {
   const t = window.parent?.kikaToken || sessionStorage.getItem('kika_token');
   return (t === 'consulta_guest') ? null : t;

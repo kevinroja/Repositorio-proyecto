@@ -26,7 +26,7 @@ function getAuthConfig() {
   const token = window.parent?.kikaToken
              || sessionStorage.getItem('kika_token');
   const API   = window.parent?.API_URL
-             || 'http://localhost:3000/api';
+             || window.location.origin + '/api';
   return { token, API };
 }
 
