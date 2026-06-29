@@ -10,9 +10,13 @@
     }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "app.js"
-    }
+    { "src": "/api/(.*)", "dest": "app.js" },
+    { "src": "/css/(.*)", "dest": "app.js" },
+    { "src": "/js/(.*)", "dest": "app.js" },
+    { "src": "/img/(.*)", "dest": "app.js" },
+    { "src": "/pages/(.*)", "dest": "app.js" },
+    { "src": "/favicon.ico", "dest": "app.js" },
+    { "src": "/", "dest": "app.js" },
+    { "src": "/(.*)", "dest": "app.js" }
   ]
 }
