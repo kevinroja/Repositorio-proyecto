@@ -209,6 +209,8 @@ class UsuarioService {
             accion: 'DELETE', usuario_id: usuarioQueElimino,
         });
 
+        const db = require("../config/db");
+        await db.query("UPDATE historial SET Usuario_id = NULL WHERE Usuario_id = ?", [id]);
         await Usuario.delete(id);
     }
 }
