@@ -1,7 +1,8 @@
 const bcrypt    = require('bcryptjs');
 const jwt       = require('jsonwebtoken');
 const Usuario   = require('../models/Usuario');
-const Historial = require('../models/Historial');
+const Historial    = require('../models/Historial');
+const EmailService = require('./EmailService');
 
 const SALT_ROUNDS = 10;
 const JWT_SECRET  = process.env.JWT_SECRET  || 'clave_secreta_cambiar_en_produccion';
@@ -86,6 +87,15 @@ class UsuarioService {
             ROL_idROL: data.ROL_idROL,
         });
         await nuevo.save();
+
+        // Enviar correo de bienvenida
+        const ROL_NOMBRES = { 1: 'Materia Prima', 2: 'Costeo', 3: 'Consulta', 4: 'Administrador' };
+        await EmailService.enviarBienvenida({
+            nombre:    data.Nombre,
+            email:     data.Email,
+            password:  data.Password,
+            rolNombre: ROL_NOMBRES[data.ROL_idROL] || 'Usuario',
+        });
 
         await Historial.registrar({
             tabla:          'USUARIO',
