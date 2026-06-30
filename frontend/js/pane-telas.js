@@ -25,7 +25,7 @@ function emptyMats() {
 function getAuthConfig() {
   const token = window.parent?.kikaToken
              || sessionStorage.getItem('kika_token');
-  const API   = window.parent?.API_URL
+  const API   = window.API_URL || window.parent?.API_URL
              || window.location.origin + '/api';
   return { token, API };
 }

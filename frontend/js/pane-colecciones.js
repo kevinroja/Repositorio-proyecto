@@ -6,7 +6,7 @@
  * ============================================================
  */
 
-const API       = window.parent?.API_URL || window.location.origin + '/api';
+const API       = window.API_URL || window.parent?.API_URL || window.location.origin + '/api';
 const getToken  = () => window.parent?.kikaToken || sessionStorage.getItem('kika_token');
 
 

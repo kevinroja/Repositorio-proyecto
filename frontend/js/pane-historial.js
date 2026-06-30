@@ -12,7 +12,7 @@
 // Autocontenido: antes dependía de que pane-colecciones.js dejara
 // estas variables como globales en la misma página (bug ya existente:
 // usaba API_URL sin declararla en ningún lado). Ahora se declaran aquí.
-const API_URL  = window.parent?.API_URL || window.location.origin + '/api';
+const API_URL  = window.API_URL || window.parent?.API_URL || window.location.origin + '/api';
 const getToken = () => window.parent?.kikaToken || sessionStorage.getItem('kika_token');
 
 // Íconos y colores por módulo para identificar visualmente cada acción

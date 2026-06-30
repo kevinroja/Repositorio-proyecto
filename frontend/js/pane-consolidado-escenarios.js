@@ -162,7 +162,7 @@ async function guardarEscenario() {
     nPrendas:           params.np,
   };
 
-  const API   = window.parent?.API_URL || 'http://localhost:3000/api';
+  const API   = window.API_URL || window.parent?.API_URL || '/api';
   const token = window.parent?.kikaToken || sessionStorage.getItem('kika_token');
 
   const btn = document.getElementById('btn-guardar-escenario');
@@ -212,7 +212,7 @@ async function cargarEscenarios() {
 
   body.innerHTML = '<p style="font-size:12px;color:var(--tx3);padding:12px 8px">⏳ Cargando…</p>';
 
-  const API   = window.parent?.API_URL || 'http://localhost:3000/api';
+  const API   = window.API_URL || window.parent?.API_URL || '/api';
   const token = window.parent?.kikaToken || sessionStorage.getItem('kika_token');
 
   try {
@@ -284,7 +284,7 @@ async function restaurarEscenario(idRepresentativo) {
   const colId = document.getElementById('cons-col-select')?.value;
   if (!colId) return;
 
-  const API   = window.parent?.API_URL || 'http://localhost:3000/api';
+  const API   = window.API_URL || window.parent?.API_URL || '/api';
   const token = window.parent?.kikaToken || sessionStorage.getItem('kika_token');
 
   try {
@@ -343,7 +343,7 @@ async function eliminarEscenario(idRepresentativo, nombre) {
   if (!ok) return;
 
   const colId = document.getElementById('cons-col-select')?.value;
-  const API   = window.parent?.API_URL || 'http://localhost:3000/api';
+  const API   = window.API_URL || window.parent?.API_URL || '/api';
   const token = window.parent?.kikaToken || sessionStorage.getItem('kika_token');
 
   try {
